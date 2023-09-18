@@ -2,17 +2,17 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  inject,
   Input,
   ViewChild,
-  inject,
 } from '@angular/core'
 import { SourcesService } from '@geonetwork-ui/feature/catalog'
 import { SearchService } from '@geonetwork-ui/feature/search'
 import {
   ErrorComponent,
   ErrorType,
-  MetadataCatalogComponent,
   MetadataContactComponent,
+  MetadataDoiComponent,
   MetadataInfoComponent,
   MetadataQualityComponent,
   ServiceCapabilitiesComponent,
@@ -45,7 +45,6 @@ import { TranslateDirective, TranslatePipe } from '@ngx-translate/core'
 import { RecordLinkedRecordsComponent } from '../record-linked-records/record-linked-records.component'
 import { PlatformServiceInterface } from '@geonetwork-ui/common/domain/platform.service.interface'
 import { UserModel } from '@geonetwork-ui/common/domain/model/user'
-import { MetadataDoiComponent } from '@geonetwork-ui/ui/elements'
 
 @Component({
   selector: 'datahub-record-metadata',
@@ -64,7 +63,7 @@ import { MetadataDoiComponent } from '@geonetwork-ui/ui/elements'
     MetadataInfoComponent,
     MetadataContactComponent,
     MetadataQualityComponent,
-    MetadataCatalogComponent,
+    // MetadataCatalogComponent, // DISABLED FOR GEOCAT
     RecordInternalLinksComponent,
     RecordDataPreviewComponent,
     ButtonComponent,

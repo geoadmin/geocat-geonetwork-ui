@@ -46,6 +46,7 @@
                   ></gn-ui-metadata-quality>
                 </div>
               }
+              <!-- DISABLED FOR GEOCAT
               @if (
                 (kind$ | async) === 'dataset' && sourceLabel$ | async;
                 as sourceLabel
@@ -55,6 +56,7 @@
                   </gn-ui-metadata-catalog>
                 </div>
               }
+              -->
               @if ((feedbacksAllowed$ | async) === true && !isAuthDisabled) {
                 <gn-ui-button
                   type="outline"
