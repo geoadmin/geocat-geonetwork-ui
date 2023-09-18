@@ -30,7 +30,10 @@ import { provideI18n } from '@geonetwork-ui/util/i18n'
 import { EffectsModule } from '@ngrx/effects'
 import { StoreDevtoolsModule } from '@ngrx/store-devtools'
 import { StoreModule } from '@ngrx/store'
-import { provideGn4 } from '@geonetwork-ui/api/repository'
+import {
+  ORGANIZATIONS_STRATEGY,
+  provideGn4,
+} from '@geonetwork-ui/api/repository'
 
 if (environment.production) {
   enableProdMode()
@@ -76,6 +79,12 @@ loadAppConfig().then(() => {
       DATAHUB_CONFIG_PROVIDERS,
       provideI18n(TRANSLATE_WITH_OVERRIDES_CONFIG),
       provideGn4(),
+
+      // custom geocat provider
+      {
+        provide: ORGANIZATIONS_STRATEGY,
+        useValue: 'groups',
+      },
     ],
   }).catch((err) => console.error(err))
 })
