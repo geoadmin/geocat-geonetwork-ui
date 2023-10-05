@@ -8,7 +8,6 @@ import {
 import { CatalogRecord } from '@geonetwork-ui/common/domain/model/record'
 import { PlatformServiceInterface } from '@geonetwork-ui/common/domain/platform.service.interface'
 import { FavoriteStarComponent } from '@geonetwork-ui/feature/search'
-import { LanguageSwitcherComponent } from '@geonetwork-ui/ui/catalog'
 import { ButtonComponent } from '@geonetwork-ui/ui/inputs'
 import { getGlobalConfig } from '@geonetwork-ui/util/app-config'
 import { getIsMobile } from '@geonetwork-ui/util/shared'
@@ -29,7 +28,7 @@ import { RecordHeaderService } from '../record-header.service'
     TranslateModule,
     ButtonComponent,
     FavoriteStarComponent,
-    LanguageSwitcherComponent,
+    // LanguageSwitcherComponent,
   ],
   viewProviders: [
     provideIcons({ matEditNote }),
