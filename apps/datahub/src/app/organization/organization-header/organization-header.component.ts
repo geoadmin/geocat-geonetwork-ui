@@ -2,12 +2,11 @@ import { Location } from '@angular/common'
 import {
   ChangeDetectionStrategy,
   Component,
-  Input,
   inject,
+  Input,
 } from '@angular/core'
 import { Router } from '@angular/router'
 import { Organization } from '@geonetwork-ui/common/domain/model/record'
-import { LanguageSwitcherComponent } from '@geonetwork-ui/ui/catalog'
 import { ErrorType } from '@geonetwork-ui/ui/elements'
 import { ButtonComponent } from '@geonetwork-ui/ui/inputs'
 import { getGlobalConfig, getThemeConfig } from '@geonetwork-ui/util/app-config'
@@ -32,7 +31,7 @@ import { TranslateDirective } from '@ngx-translate/core'
   imports: [
     TranslateDirective,
     NgIconComponent,
-    LanguageSwitcherComponent,
+    // LanguageSwitcherComponent,
     ButtonComponent,
   ],
   providers: [

@@ -40,7 +40,6 @@ import { TranslateDirective, TranslatePipe } from '@ngx-translate/core'
 import { HeaderBadgeButtonComponent } from '../header-badge-button/header-badge-button.component'
 import { RouterLink } from '@angular/router'
 import { NavigationMenuComponent } from '../navigation-menu/navigation-menu.component'
-import { LanguageSwitcherComponent } from '@geonetwork-ui/ui/catalog'
 import { provideIcons, provideNgIconsConfig } from '@ng-icons/core'
 import { matStarOutline } from '@ng-icons/material-icons/outline'
 
@@ -62,7 +61,7 @@ marker('datahub.header.popularRecords')
     HeaderBadgeButtonComponent,
     RouterLink,
     NavigationMenuComponent,
-    LanguageSwitcherComponent,
+    // LanguageSwitcherComponent,
     FuzzySearchComponent,
     LocationSearchComponent,
   ],
