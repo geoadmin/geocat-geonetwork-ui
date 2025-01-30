@@ -460,6 +460,7 @@
   "record.metadata.topics": "Kategorien",
   "record.metadata.type": "Geographischer Datensatz",
   "record.metadata.uniqueId": "Eindeutige Kennung",
+  "record.metadata.update": "Aktualisierungsdatum",
   "record.metadata.updateFrequency": "Aktualisierungsfrequenz der Daten",
   "record.metadata.updatedOn": "Geändert am",
   "record.metadata.usage": "Nutzung und Einschränkungen",

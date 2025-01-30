@@ -42,7 +42,7 @@ export class Gn4FieldMapper {
   constructor(
     private metadataUrlService: MetadataUrlService,
     private langService: LangService
-  ) {}
+  ) { }
 
   private lang3 = this.langService.gnLang
 
@@ -117,15 +117,20 @@ export class Gn4FieldMapper {
     }),
     creationDateForResource: (output, source) => ({
       ...output,
-      resourceCreated: toDate(
-        getFirstValue(selectField<string>(source, 'creationDateForResource'))
-      ),
+      resourceCreated: (() => {
+        const date = new Date(getFirstValue(selectField<string>(source, 'creationDateForResource')));
+        date.setUTCHours(0, 0, 0, 0);
+        return date;
+      })()
     }),
+
     revisionDateForResource: (output, source) => ({
       ...output,
-      resourceUpdated: toDate(
-        getFirstValue(selectField<string>(source, 'revisionDateForResource'))
-      ),
+      resourceUpdated: (() => {
+        const date = new Date(getFirstValue(selectField<string>(source, 'revisionDateForResource')));
+        date.setUTCHours(0, 0, 0, 0);
+        return date;
+      })()
     }),
     createDate: (output, source) => ({
       ...output,
@@ -137,9 +142,11 @@ export class Gn4FieldMapper {
     }),
     publicationDateForResource: (output, source) => ({
       ...output,
-      recordPublished: toDate(
-        selectField<string>(source, 'publicationDateForResource')
-      ),
+      resourcePublished: (() => {
+        const date = new Date(getFirstValue(selectField<string>(source, 'publicationDateForResource')));
+        date.setUTCHours(0, 0, 0, 0);
+        return date;
+      })()
     }),
     resourceLanguage: (output, source) => {
       const langList = getAsArray(
@@ -185,7 +192,7 @@ export class Gn4FieldMapper {
       ...output,
       contactsForResource: [
         ...('contactsForResource' in output &&
-        Array.isArray(output.contactsForResource)
+          Array.isArray(output.contactsForResource)
           ? output.contactsForResource
           : []),
         ...getAsArray(selectField(source, 'contactForResource')).map(
