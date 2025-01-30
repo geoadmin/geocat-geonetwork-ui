@@ -7,6 +7,7 @@ export interface Organization {
   website?: URL
   logoUrl?: URL
   recordCount?: number
+  defaultCategory?: string
 
   translations?: OrganizationTranslations
 }

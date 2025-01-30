@@ -21,8 +21,7 @@ const IMAGE_URL = '/geonetwork/images/harvesting/'
 
 @Injectable()
 export class OrganizationsFromGroupsService
-  implements OrganizationsServiceInterface
-{
+  implements OrganizationsServiceInterface {
   private groups$: Observable<GroupApiModel[]> = this.groupsApiService
     .getGroups()
     .pipe(shareReplay())
@@ -56,7 +55,7 @@ export class OrganizationsFromGroupsService
     private searchApiService: SearchApiService,
     private groupsApiService: GroupsApiService,
     private translateService: TranslateService
-  ) {}
+  ) { }
 
   private mapGroups(groupBuckets: any[], groups: GroupApiModel[]) {
     return groupBuckets
@@ -73,8 +72,15 @@ export class OrganizationsFromGroupsService
 
   private mapOrgFromGroup(group: GroupApiModel) {
     const lang3 = LANG_2_TO_3_MAPPER[this.translateService.currentLang]
+
+    const defaultCategory =
+      typeof group.defaultCategory === 'object' && group.defaultCategory?.label
+        ? group.defaultCategory.label[lang3] || this.translateService.instant('datahub.search.filter.others')
+        : this.translateService.instant('datahub.search.filter.others');
+
     return {
       name: group.label[lang3],
+      defaultCategory,
       ...(group.description && { description: group.description }),
       ...(group.email && { email: group.email }),
       ...(group.logo && {

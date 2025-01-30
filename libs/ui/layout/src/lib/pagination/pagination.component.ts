@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core'
+import { Component, Input, Output, EventEmitter } from '@angular/core'
 import { ButtonComponent } from '@geonetwork-ui/ui/inputs'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import { FormsModule } from '@angular/forms'
@@ -31,15 +31,37 @@ import { Paginable } from '../paginable.interface'
 })
 export class PaginationComponent {
   @Input() listComponent: Paginable
-  @Input() hideButton = false
+  @Input() currentPage: number = 1;
+  @Input() pagesCount: number = 1;
+  @Input() hideButton: boolean = false;
+  @Output() pageChange = new EventEmitter<number>();
 
-  private applyPageBounds(page: number): number {
-    // make sure this works with NaN inputs as well by adding `|| 1`
-    return Math.max(1, Math.min(this.listComponent.pagesCount, page || 1))
+  get isFirstPage(): boolean {
+    return this.currentPage <= 1;
   }
 
-  setPage(newPage) {
-    if (!Number.isInteger(newPage)) return
-    this.listComponent.goToPage(this.applyPageBounds(newPage))
+  get isLastPage(): boolean {
+    return this.currentPage >= this.pagesCount;
+  }
+
+  private applyPageBounds(page: number): number {
+    return Math.max(1, Math.min(this.pagesCount, page || 1));
+  }
+
+  setPage(newPage: number) {
+    if (!Number.isInteger(newPage)) return;
+    this.pageChange.emit(this.applyPageBounds(newPage));
+  }
+
+  goToNextPage() {
+    if (this.currentPage < this.pagesCount) {
+      this.pageChange.emit(this.currentPage + 1);
+    }
+  }
+
+  goToPrevPage() {
+    if (this.currentPage > 1) {
+      this.pageChange.emit(this.currentPage - 1);
+    }
   }
 }
