@@ -21,7 +21,7 @@ import {
   OrganisationsFilterComponent,
   OrganisationsResultComponent,
 } from '@geonetwork-ui/ui/catalog'
-import { Paginable, PaginationComponent } from '@geonetwork-ui/ui/layout'
+import { Paginable, PaginationComponent, ExpandablePanelComponent } from '@geonetwork-ui/ui/layout'
 
 @Component({
   selector: 'gn-ui-organisations',
@@ -36,22 +36,24 @@ import { Paginable, PaginationComponent } from '@geonetwork-ui/ui/layout'
     OrganisationsResultComponent,
     OrganisationPreviewComponent,
     PaginationComponent,
-  ],
+    ExpandablePanelComponent],
 })
 export class OrganisationsComponent implements Paginable {
   @Input() itemsOnPage = 12
+  @Input() groupedOrganizations?: Record<string, Organization[]>
   @Output() orgSelect = new EventEmitter<Organization>()
 
   constructor(
     private organisationsService: OrganizationsServiceInterface,
     @Optional()
     @Inject(ORGANIZATION_PAGE_URL_TOKEN)
-    private urlTemplate: string
-  ) {}
+    private urlTemplate: string,
+  ) { }
 
   totalPages: number
   currentPage$ = new BehaviorSubject(1)
-  organisationResults: number
+  categoryCurrentPage$ = new BehaviorSubject<Record<string, number>>({});
+  collapsedState: Record<string, boolean> = {};
   sortBy$: BehaviorSubject<SortByField> = new BehaviorSubject(['asc', 'name'])
   filterBy$: BehaviorSubject<string> = new BehaviorSubject('')
   organisationsTotal$ = this.organisationsService.organisationsCount$
@@ -71,21 +73,69 @@ export class OrganisationsComponent implements Paginable {
     })
   )
 
-  organisations$: Observable<Organization[]> = combineLatest([
-    this.organisationsFilteredAndSorted$,
-    this.currentPage$,
+  groupedOrganizations$: Observable<Record<string, Organization[]>> =
+    this.organisationsFilteredAndSorted$.pipe(
+      map((organisations) => {
+        const grouped = organisations.reduce((acc, org) => {
+          const category = org.defaultCategory || 'Other';
+          if (!acc[category]) acc[category] = []
+          acc[category].push(org)
+          return acc;
+        }, {} as Record<string, Organization[]>)
+
+        return grouped;
+      })
+    );
+
+  categoryCounts$: Observable<Record<string, number>> = this.groupedOrganizations$.pipe(
+    map(grouped => {
+      return Object.keys(grouped).reduce((acc, category) => {
+        acc[category] = grouped[category].length;
+        return acc;
+      }, {} as Record<string, number>);
+    })
+  );
+
+  groupedOrganizationsPaged$: Observable<Record<string, Organization[]>> = combineLatest([
+    this.groupedOrganizations$,
+    this.categoryCurrentPage$
   ]).pipe(
-    tap(([organisations]) => {
-      this.organisationResults = organisations.length
-      this.totalPages = Math.ceil(organisations.length / this.itemsOnPage)
-    }),
-    map(([organisations, page]) =>
-      organisations.slice(
-        (page - 1) * this.itemsOnPage,
-        page * this.itemsOnPage
-      )
+    map(([grouped, pageState]) => {
+      const paginatedGroups: Record<string, Organization[]> = {};
+
+      Object.keys(grouped).forEach(category => {
+        const page = pageState[category] || 1;
+        const start = (page - 1) * this.itemsOnPage;
+        const end = start + this.itemsOnPage;
+        paginatedGroups[category] = grouped[category].slice(start, end);
+      });
+
+      return paginatedGroups;
+    })
+  );
+
+  organisationResults$: Observable<number> = this.groupedOrganizationsPaged$.pipe(
+    map(grouped => Object.values(grouped)
+      .reduce((acc, orgArray) => acc.concat(orgArray), []) // Équivalent à .flat()
+      .length
     )
-  )
+  );
+
+  // organisations$: Observable<Organization[]> = combineLatest([
+  //   this.organisationsFilteredAndSorted$,
+  //   this.currentPage$,
+  // ]).pipe(
+  //   tap(([organisations]) => {
+  //     this.organisationResults$ = organisations.length
+  //     this.totalPages = Math.ceil(organisations.length / this.itemsOnPage)
+  //   }),
+  //   map(([organisations, page]) =>
+  //     organisations.slice(
+  //       (page - 1) * this.itemsOnPage,
+  //       page * this.itemsOnPage
+  //     )
+  //   )
+  // )
 
   protected setFilterBy(value: string): void {
     this.currentPage$.next(1)
@@ -94,6 +144,14 @@ export class OrganisationsComponent implements Paginable {
 
   protected setSortBy(value: SortByField): void {
     this.sortBy$.next(value)
+  }
+
+  toggleCategory(category: string) {
+    this.collapsedState[category] = !this.collapsedState[category];
+  }
+
+  isCategoryCollapsed(category: string): boolean {
+    return this.collapsedState[category] ?? true;
   }
 
   private filterOrganisations(organisations: Organization[], filterBy: string) {
@@ -156,5 +214,17 @@ export class OrganisationsComponent implements Paginable {
   }
   goToPrevPage() {
     this.goToPage(this.currentPage - 1)
+  }
+  getCategoryPages(category: string, counts: Record<string, number> | null): number {
+    if (!counts || !counts[category] || counts[category] === 0) {
+      return 1;
+    }
+    return Math.ceil(counts[category] / this.itemsOnPage);
+  }
+  setCategoryPage(category: string, page: number) {
+    this.categoryCurrentPage$.next({
+      ...this.categoryCurrentPage$.value,
+      [category]: page
+    });
   }
 }
