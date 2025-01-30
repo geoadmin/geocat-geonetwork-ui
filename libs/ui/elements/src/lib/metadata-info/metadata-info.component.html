@@ -1,65 +1,39 @@
 <div class="mb-6 md-description sm:mb-4 sm:pr-16">
-  <gn-ui-content-ghost
-    ghostClass="h-[178px]"
-    [showContent]="fieldReady('abstract')"
-  >
+  <gn-ui-content-ghost ghostClass="h-[178px]" [showContent]="fieldReady('abstract')">
     <gn-ui-max-lines [maxLines]="6" *ngIf="metadata.abstract">
       <div class="mb-6">
-        <gn-ui-markdown-parser
-          [textContent]="metadata.abstract"
-        ></gn-ui-markdown-parser>
+        <gn-ui-markdown-parser [textContent]="metadata.abstract"></gn-ui-markdown-parser>
       </div>
     </gn-ui-max-lines>
   </gn-ui-content-ghost>
 
-  <p
-    class="mt-6 mb-3 font-medium text-primary text-sm"
-    translate
-    *ngIf="!fieldReady('keywords') || metadata.keywords?.length"
-  >
+  <p class="mt-6 mb-3 font-medium text-primary text-sm" translate
+    *ngIf="!fieldReady('keywords') || metadata.keywords?.length">
     record.metadata.keywords
   </p>
 
-  <gn-ui-content-ghost
-    ghostClass="h-[31px] w-3/4"
-    [showContent]="fieldReady('keywords')"
-  >
+  <gn-ui-content-ghost ghostClass="h-[31px] w-3/4" [showContent]="fieldReady('keywords')">
     <div *ngIf="metadata.keywords?.length">
       <div class="sm:pb-4 flex flex-wrap gap-2">
-        <gn-ui-badge
-          class="inline-block lowercase"
-          (click)="onKeywordClick(keyword)"
-          [clickable]="true"
-          *ngFor="let keyword of metadata.keywords"
-          >{{ keyword.label }}</gn-ui-badge
-        >
+        <gn-ui-badge class="inline-block lowercase" (click)="onKeywordClick(keyword)" [clickable]="true"
+          *ngFor="let keyword of metadata.keywords">{{ keyword.label }}</gn-ui-badge>
       </div>
     </div>
   </gn-ui-content-ghost>
 </div>
 
-<gn-ui-expandable-panel
-  *ngIf="
+<gn-ui-expandable-panel *ngIf="
     metadata.licenses ||
     metadata.legalConstraints ||
     metadata.securityConstraints ||
     metadata.otherConstraints
-  "
-  [title]="'record.metadata.usage' | translate"
->
+  " [title]="'record.metadata.usage' | translate">
   <div class="flex flex-col gap-[10px] mr-4 py-[12px] rounded text-gray-900">
     <ng-container *ngFor="let license of licenses">
       <div *ngIf="license.url; else noUrl" class="text-primary">
-        <a
-          [href]="license.url"
-          target="_blank"
-          class="cursor-pointer hover:underline transition-all"
-        >
+        <a [href]="license.url" target="_blank" class="cursor-pointer hover:underline transition-all">
           {{ license.text }}
-          <ng-icon
-            class="!w-[12px] !h-[12px] !text-[12px] opacity-75 shrink-0"
-            name="matOpenInNew"
-          ></ng-icon>
+          <ng-icon class="!w-[12px] !h-[12px] !text-[12px] opacity-75 shrink-0" name="matOpenInNew"></ng-icon>
         </a>
       </div>
       <ng-template #noUrl>
@@ -70,10 +44,7 @@
     </ng-container>
     <ng-container *ngIf="legalConstraints.length">
       <div class="mb-6">
-        <gn-ui-markdown-parser
-          *ngFor="let constraint of legalConstraints"
-          [textContent]="constraint"
-        >
+        <gn-ui-markdown-parser *ngFor="let constraint of legalConstraints" [textContent]="constraint">
         </gn-ui-markdown-parser>
       </div>
     </ng-container>
@@ -94,102 +65,73 @@
     </span>
   </div>
 </gn-ui-expandable-panel>
-<gn-ui-expandable-panel
-  *ngIf="
+<gn-ui-expandable-panel *ngIf="
     metadata.lineage ||
     metadata.recordUpdated ||
     metadata.updateFrequency ||
     metadata.status
-  "
-  [title]="'record.metadata.details' | translate"
->
+  " [title]="'record.metadata.details' | translate">
   <div *ngIf="metadata.lineage" class="text-gray-900 flex flex-col mt-4 gap-2">
     <p class="whitespace-pre-line break-words text-gray-900" gnUiLinkify>
       {{ metadata.lineage }}
     </p>
   </div>
   <div class="flex flex-row gap-6 mt-5 mb-8" *ngIf="resourceContact">
-    <div
-      *ngIf="resourceContact.organization?.logoUrl?.href"
-      class="flex items-center justify-center border-solid border border-gray-300 rounded-md bg-white h-32 overflow-hidden"
-    >
-      <gn-ui-thumbnail
-        class="relative h-full w-full"
-        [thumbnailUrl]="resourceContact.organization.logoUrl.href"
-        fit="contain"
-      ></gn-ui-thumbnail>
+    <div *ngIf="resourceContact.organization?.logoUrl?.href"
+      class="flex items-center justify-center border-solid border border-gray-300 rounded-md bg-white h-32 overflow-hidden">
+      <gn-ui-thumbnail class="relative h-full w-full" [thumbnailUrl]="resourceContact.organization.logoUrl.href"
+        fit="contain"></gn-ui-thumbnail>
     </div>
     <div class="flex flex-col gap-1">
       <p class="text-sm font-medium" translate>record.metadata.producer</p>
-      <div
-        class="text-primary font-title text-21 mr-2 cursor-pointer hover:underline"
-        data-cy="organization-name"
-      >
+      <div class="text-primary font-title text-21 mr-2 cursor-pointer hover:underline" data-cy="organization-name">
         {{ resourceContact.organization?.name }}
       </div>
       <div *ngIf="resourceContact.organization?.website">
-        <a
-          [href]="resourceContact.organization.website"
-          target="_blank"
-          class="contact-website text-primary text-sm cursor-pointer hover:underline transition-all"
-          >{{ resourceContact.organization.website }}
-          <ng-icon
-            class="!w-[12px] !h-[12px] !text-[12px] opacity-75 shrink-0"
-            name="matOpenInNew"
-          ></ng-icon>
+        <a [href]="resourceContact.organization.website" target="_blank"
+          class="contact-website text-primary text-sm cursor-pointer hover:underline transition-all">{{
+          resourceContact.organization.website }}
+          <ng-icon class="!w-[12px] !h-[12px] !text-[12px] opacity-75 shrink-0" name="matOpenInNew"></ng-icon>
         </a>
       </div>
       <div class="mt-4" *ngIf="resourceContact.email">
         <div class="flex">
-          <ng-icon
-            class="!w-5 !h-5 !text-[20px] opacity-75 shrink-0"
-            name="matMailOutline"
-          ></ng-icon>
-          <a
-            *ngIf="resourceContact.email"
-            [href]="'mailto:' + resourceContact.email"
-            class="text-sm hover:underline ml-2"
-            target="_blank"
-            data-cy="contact-email"
-            >{{ resourceContact?.email }}</a
-          >
+          <ng-icon class="!w-5 !h-5 !text-[20px] opacity-75 shrink-0" name="matMailOutline"></ng-icon>
+          <a *ngIf="resourceContact.email" [href]="'mailto:' + resourceContact.email"
+            class="text-sm hover:underline ml-2" target="_blank" data-cy="contact-email">{{ resourceContact?.email
+            }}</a>
         </div>
       </div>
     </div>
   </div>
-  <div
-    class="py-6 px-6 rounded bg-gray-100 grid grid-cols-2 gap-y-6 gap-x-[20px] text-gray-700"
-  >
-    <div *ngIf="metadata.recordCreated">
+  <div class="py-6 px-6 rounded bg-gray-100 grid grid-cols-2 gap-y-6 gap-x-[20px] text-gray-700">
+    <div *ngIf="metadata.resourceCreated">
       <p class="text-sm" translate>record.metadata.creation</p>
       <p class="text-primary font-medium mt-1">
-        {{ metadata.recordCreated.toLocaleDateString() }}
-      </p>
+        {{ metadata.resourceCreated.toLocaleDateString('fr-CH') }}
     </div>
-    <div *ngIf="metadata.recordPublished">
+    <div *ngIf="metadata.resourcePublished">
       <p class="text-sm" translate>record.metadata.publication</p>
       <p class="text-primary font-medium mt-1">
-        {{ metadata.recordPublished.toLocaleDateString() }}
+        {{ metadata.resourcePublished.toLocaleDateString('fr-CH') }}
+      </p>
+    </div>
+    <div *ngIf="metadata.resourceUpdated">
+      <p class="text-sm" translate>record.metadata.update</p>
+      <p class="text-primary font-medium mt-1">
+        {{ metadata.resourceUpdated.toLocaleDateString('fr-CH') }}
       </p>
     </div>
     <div *ngIf="updateFrequency">
       <p class="text-sm" translate>record.metadata.updateFrequency</p>
-      <p
-        class="text-primary font-medium mt-1 updateFrequency"
-        translate
-        [translateParams]="{ count: updatedTimes }"
-      >
+      <p class="text-primary font-medium mt-1 updateFrequency" translate [translateParams]="{ count: updatedTimes }">
         {{ updateFrequency }}
       </p>
     </div>
     <div *ngIf="metadata.otherLanguages?.length">
       <p class="text-sm mb-1" translate>record.metadata.languages</p>
       <div class="flex flex-row gap-1 flex-wrap">
-        <p
-          class="text-primary font-medium"
-          translate
-          *ngFor="let language of metadata.otherLanguages"
-        >
+        <p class="text-primary font-medium" translate *ngFor="let language of metadata.otherLanguages">
           language.{{ language }}
         </p>
       </div>
@@ -197,38 +139,25 @@
     <div *ngIf="temporalExtent">
       <p class="text-sm" translate>record.metadata.temporalExtent</p>
       <div class="flex flex-row gap-1 mb-1 text-primary font-medium">
-        <p
-          *ngIf="temporalExtent.start && temporalExtent.end"
-          translate
-          [translateParams]="{
+        <p *ngIf="temporalExtent.start && temporalExtent.end" translate [translateParams]="{
             start: temporalExtent.start,
             end: temporalExtent.end
-          }"
-        >
+          }">
           record.metadata.temporalExtent.fromDateToDate
         </p>
-        <p
-          *ngIf="temporalExtent.start && !temporalExtent.end"
-          translate
-          [translateParams]="{ start: temporalExtent.start }"
-        >
+        <p *ngIf="temporalExtent.start && !temporalExtent.end" translate
+          [translateParams]="{ start: temporalExtent.start }">
           record.metadata.temporalExtent.sinceDate
         </p>
-        <p
-          *ngIf="!temporalExtent.start && temporalExtent.end"
-          translate
-          [translateParams]="{ end: temporalExtent.end }"
-        >
+        <p *ngIf="!temporalExtent.start && temporalExtent.end" translate
+          [translateParams]="{ end: temporalExtent.end }">
           record.metadata.temporalExtent.untilDate
         </p>
       </div>
     </div>
   </div>
 </gn-ui-expandable-panel>
-<gn-ui-expandable-panel
-  *ngIf="metadata.landingPage"
-  [title]="'record.metadata.technical' | translate"
->
+<gn-ui-expandable-panel *ngIf="metadata.landingPage" [title]="'record.metadata.technical' | translate">
   <div class="flex flex-col gap-4 mr-4 py-5 rounded text-gray-700">
     <div *ngIf="metadata.recordUpdated">
       <p class="text-sm" translate>record.metadata.updatedOn</p>
@@ -242,7 +171,7 @@
         <a [href]="metadataLandingPageAdvanced" target="_blank">
           <span class="break-all" gnUiLinkify>{{
             metadataLandingPageAdvanced
-          }}</span>
+            }}</span>
         </a>
       </p>
     </div>
@@ -255,11 +184,8 @@
     <div *ngIf="metadata.uniqueIdentifier">
       <p class="text-sm" translate>record.metadata.uniqueId</p>
       <div class="flex flex-row content-align items-end gap-1">
-        <gn-ui-copy-text-button
-          [text]="metadata.uniqueIdentifier"
-          [tooltipText]="'tooltip.id.copy' | translate"
-          [displayText]="false"
-        ></gn-ui-copy-text-button>
+        <gn-ui-copy-text-button [text]="metadata.uniqueIdentifier" [tooltipText]="'tooltip.id.copy' | translate"
+          [displayText]="false"></gn-ui-copy-text-button>
         <p class="text-primary font-medium">
           {{ metadata.uniqueIdentifier }}
         </p>
@@ -268,11 +194,8 @@
     <div *ngIf="metadata.topics?.length">
       <p class="text-sm mb-1" translate>record.metadata.topics</p>
       <div class="sm:pb-4 sm:pr-16">
-        <gn-ui-badge
-          class="inline-block mr-2 mb-2 lowercase"
-          *ngFor="let topic of metadata.topics"
-          >{{ topic }}</gn-ui-badge
-        >
+        <gn-ui-badge class="inline-block mr-2 mb-2 lowercase" *ngFor="let topic of metadata.topics">{{ topic
+          }}</gn-ui-badge>
       </div>
     </div>
   </div>

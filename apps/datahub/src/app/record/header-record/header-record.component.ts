@@ -47,7 +47,7 @@ export class HeaderRecordComponent {
     private searchService: SearchService,
     public facade: MdViewFacade,
     private translateService: TranslateService
-  ) {}
+  ) { }
 
   isGeodata$ = combineLatest([
     this.facade.mapApiLinks$,
@@ -61,7 +61,7 @@ export class HeaderRecordComponent {
 
   get lastUpdate() {
     return this.metadata.recordUpdated.toLocaleDateString(
-      this.translateService.currentLang
+      'fr-CH'
     )
   }
 

@@ -460,6 +460,7 @@
   "record.metadata.topics": "Categories",
   "record.metadata.type": "Geographical dataset",
   "record.metadata.uniqueId": "Unique Identifier",
+  "record.metadata.update": "Date of update",
   "record.metadata.updateFrequency": "Data Update Frequency",
   "record.metadata.updatedOn": "Updated on",
   "record.metadata.usage": "License and Conditions",

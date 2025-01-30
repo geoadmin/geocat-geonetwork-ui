@@ -90,7 +90,7 @@ export interface BaseRecord {
   abstract: string
   recordCreated?: Date
   recordPublished?: Date
-  recordUpdated: Date
+  recordUpdated?: Date
   kind: RecordKind
   topics: Array<string> // TODO: handle codelists
   keywords: Array<Keyword>

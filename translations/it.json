@@ -460,6 +460,7 @@
   "record.metadata.topics": "Categorie",
   "record.metadata.type": "Dati geografici",
   "record.metadata.uniqueId": "Identificatore unico di risorsa",
+  "record.metadata.update": "Data di aggiornamento",
   "record.metadata.updateFrequency": "Frequenza di aggiornamento dei dati",
   "record.metadata.updatedOn": "Modificato il",
   "record.metadata.usage": "Licenze e limiti di utilizzo",
