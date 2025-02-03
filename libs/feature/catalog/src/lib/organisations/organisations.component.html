@@ -6,11 +6,10 @@
   </gn-ui-organisations-result>
 </div>
 <div *ngIf="groupedOrganizationsPaged$ | async as groupedOrganizations">
-  <ng-container *ngFor="let category of (groupedOrganizationsPaged$ | async | keyvalue); trackBy: trackByCategory">
+  <ng-container *ngFor="let category of (groupedOrganizationsPaged$ | async | keyvalue); trackBy: trackByIndex">
     <gn-ui-expandable-panel [style.min-height]="'500px'" [style.max-height]="'100vh'"
       [title]="category.key + ' (' + ((categoryCounts$ | async)?.[category.key] || 0) + ' organisations)'"
       [collapsed]="collapsedState[category] ?? true">
-
       <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
         <gn-ui-content-ghost class="h-[300px]" ghostClass="h-full mb-36"
           *ngFor="let organisation of category.value; trackBy: trackByIndex" [showContent]="!!organisation.name">
