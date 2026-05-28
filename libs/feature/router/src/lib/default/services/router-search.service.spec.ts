@@ -11,6 +11,8 @@ import { BehaviorSubject, of } from 'rxjs'
 import { RouterFacade } from '../state/router.facade'
 import { RouterSearchService } from './router-search.service'
 import { TestBed } from '@angular/core/testing'
+import { RouterService } from '../router.service'
+import { ROUTER_CONFIG } from '../router.config'
 
 let state = {}
 class SearchFacadeMock {
@@ -77,6 +79,8 @@ describe('RouterSearchService', () => {
         { provide: RouterFacade, useValue: routerFacade },
         { provide: SearchFacade, useValue: searchFacade },
         { provide: FieldsService, useValue: fieldsService },
+        { provide: RouterService, useClass: RouterServiceMock },
+        { provide: ROUTER_CONFIG, useValue: {} },
       ],
     })
     service = TestBed.inject(RouterSearchService)
