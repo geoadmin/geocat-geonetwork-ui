@@ -19,7 +19,7 @@ datahub_url = "/datahub"
 # This should point to a proxy to avoid CORS errors on some requests (data preview, OGC capabilities etc.)
 # The actual URL will be appended after this path, e.g. : https://my.proxy/?url=http%3A%2F%2Fencoded.url%2Fows`
 # This is an optional parameter: leave empty to disable proxy usage
-proxy_path = "/geonetwork/proxy?url="
+proxy_path = "/dev-proxy?"
 # This optional parameter defines, in which language metadata should be queried in elasticsearch.
 # Use ISO 639-1 (https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) format in 2 characters to indicate the language of the metadata.
 # Setting to "current" will use the current language of the User Interface.
@@ -96,33 +96,21 @@ favicon = "/geonetwork/images/logos/favicon.png"
 # filter_geometry_data = '{ "coordinates": [...], "type": "Polygon" }'
 
 # The advanced search filters available to the user can be customized with this setting.
-# The following fields can be used for filtering: 'organization', 'format', 'publicationYear', 'standard', 'inspireKeyword', 'keyword', 'topic', 'isSpatial', 'license', 'resourceType', 'representationType', 'producerOrg', 'publisherOrg'
-# If not configured, the default values are 'organization', 'format', 'publicationYear', 'topic', 'isSpatial', 'license'
-# Note that some links in the datahub app set an 'organization' filter. So this field is needed to allow unsetting such filters.
-# WARNING: 'resourceType' filter has been deprecated, please use 'recordKind' instead. Breaking change: 'resourceType' filter won't retrieve featureCatalog anymore.
-advanced_filters = ['topic', 'publisher', 'contact', 'keyword', 'resourceType', 'representationType', 'format']
+# The following fields can be used for filtering: 'publisher', 'format', 'publicationYear', 'standard', 'inspireKeyword', 'topic', 'isSpatial', 'license'
+# any other field will be ignored
+advanced_filters = ['topic', 'organization', 'contact', 'keyword', 'resourceType', 'representationType', 'format']
 
-# Optional; if true, the default pre-configured searches ("The latest" and "The most popular")
-# will not be shown under the main search bar. Defaults to false.
-# do_not_use_default_search_preset = false
-
-# One or several search presets visible in form of badges can be defined here; every search preset is composed of:
+# One or several search presets can be defined here; every search preset is composed of:
 # - a name (which can be a translation key)
-# - a sort criteria (prepend the field name with - to do a descending sort):
-#   - `-revisionDateForResource,-publicationDateForResource,-creationDateForResource` (resource dates)
-#   - `-userSavedcount`
-#   - `-qualityScore`
-#   - `-_score`
-#     Note: Other fields of the records can be used as a sort criteria, but the sort drop-down will not display their entries.
+# - a sort criteria: either `createDate`, `userSavedCount` or `_score` (prepend with `-` for descending sort)
 # - filters which can be expressed like so:
 # [[search_preset]]
 #     name = 'filterByName'
 #     filters.q = 'Full text search'
-#     filters.organization = ['Org 1', 'Org 2']
+#     filters.publisher = ['Org 1', 'Org 2']
 #     filters.format = ['format 1', 'format 2']
 #     filters.documentStandard = ['iso19115-3.2018']
-#     filters.keyword = ['keyword 1', 'keyword 2']
-#     filters.inspireKeyword = ['http://inspire.ec.europa.eu/theme/er']
+#     filters.inspireKeyword = ['keyword 1', 'keyword 2']
 #     filters.topic = ['boundaries']
 #     filters.publicationYear = ['2023', '2022']
 #     filters.isSpatial = ['yes']
@@ -142,7 +130,7 @@ advanced_filters = ['topic', 'publisher', 'contact', 'keyword', 'resourceType', 
 # This section contains settings used for fine-tuning the metadata quality experience
 [metadata-quality]
 # By default the widget is not activated to enable it, just add this parameter.
-# enabled = true
+enabled = true
 # If u want to use metadata quality widget this configuration is required
 
 ### MAP SETTINGS
@@ -154,12 +142,7 @@ advanced_filters = ['topic', 'publisher', 'contact', 'keyword', 'resourceType', 
 
 # Optional; will limit the possibility to pan or zoom out outside of an extent
 # Expressed in the map view projection (EPSG:3857)
-# max_extent = [-418263.418776, 5251529.591305, 961272.067714, 6706890.609855]
-
-# Optional; Will remove WFS from map layers if its features exceed the indicated number.
-# Data preview chart and table will be hidden in this case.
-# max_feature_count = 5000
-
+max_extent = [600000, 5720000, 1250000, 6200000]
 # Optional; URL template enabling to open map layers in an external viewer; if set, displays a button next to the map's layer drop down
 # The template must include the following placeholders, which allow the datahub to inject the correct values when adding a layer to a viewer:
 # ${service_url}: URL of the OWS or geojson file
@@ -171,7 +154,8 @@ advanced_filters = ['topic', 'publisher', 'contact', 'keyword', 'resourceType', 
 # mapfishapp template:
 # external_viewer_url_template = 'https://dev.geo2france.fr/mapfishapp/?owsurl=${service_url}&layername=${layer_name}&owstype=${service_type}Layer'
 # mapstore template
-# external_viewer_url_template = 'https://dev.geo2france.fr/mapstore/#/?actions=[{"type":"CATALOG:ADD_LAYERS_FROM_CATALOGS","layers":["${layer_name}"],"sources":[{"url":"${service_url}","type":"${service_type}"}],"options":[{"format":"${mime_type}"}]}]'
+# external_viewer_url_template = 'https://dev.geo2france.fr/mapstore/#/?actions=[{"type":"CATALOG:ADD_LAYERS_FROM_CATALOGS","layers":["${layer_name}"],"sources":[{"url":"${service_url}","type":"${service_type}"}]}]'
+external_viewer_url_template = 'https://map.geo.admin.ch/#/map?layers=WMS%7C${service_url}%7C${layer_name}'
 
 # Optional; if true, opens external viewer in new tab (default false)
 # external_viewer_open_new_tab = false
@@ -181,7 +165,7 @@ advanced_filters = ['topic', 'publisher', 'contact', 'keyword', 'resourceType', 
 
 # Optional; if true, the default basemap will not be added to the map.
 # Use [[map_layer]] sections to define your own custom layers (see below)
-# do_not_use_default_basemap = false
+do_not_use_default_basemap = true
 
 # One or several layers (as background or overlay) can be added to the map with the following properties:
 # - type (mandatory): Indicates the layer type. Possible values are 'xyz', 'wms', 'wfs', 'geojson'.
@@ -191,9 +175,9 @@ advanced_filters = ['topic', 'publisher', 'contact', 'keyword', 'resourceType', 
 # Layer order in the config is the same as in the map, the first one being the bottom one.
 # Each layer is defined in its own [[map_layer]] section.
 # Example:
-# [[map_layer]]
-# type = "maplibre-style"
-# styleUrl = "https://data.geopf.fr/annexes/ressources/vectorTiles/styles/PLAN.IGN/gris.json"
+[[map_layer]]
+type = "xyz"
+url = "https://wmts10.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-grau/default/current/3857/{z}/{x}/{y}.jpeg"
 # [[map_layer]]
 # type = "xyz"
 # url = "https://{a-c}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"

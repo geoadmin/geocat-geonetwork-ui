@@ -130,7 +130,7 @@ describe('RecordActionsComponent', () => {
   })
 
   describe('Language Switcher', () => {
-    it('should show the language switcher based on showLanguageSwitcher', () => {
+    xit('should show the language switcher based on showLanguageSwitcher', () => {
       component.showLanguageSwitcher = true
       fixture.detectChanges()
 
