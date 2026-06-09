@@ -44,6 +44,7 @@ import { GnFigureDatasetsComponent } from './components/gn-figure-datasets/gn-fi
 import { GnMapViewerComponent } from './components/gn-map-viewer/gn-map-viewer.component'
 import { GnResultsListComponent } from './components/gn-results-list/gn-results-list.component'
 import { GnSearchInputComponent } from './components/gn-search-input/gn-search-input.component'
+import { GnMetadataQualityComponent } from './components/gn-metadata-quality/gn-metadata-quality.component'
 import { standaloneConfigurationObject } from './configuration'
 import { StandaloneSearchModule } from './standalone-search.module'
 import { BrowserModule } from '@angular/platform-browser'
@@ -66,6 +67,7 @@ const CUSTOM_ELEMENTS: [
   [GnMapViewerComponent, 'gn-map-viewer'],
   [GnFigureDatasetsComponent, 'gn-figure-datasets'],
   [GnDatasetViewMapComponent, 'gn-dataset-view-map'],
+  [GnMetadataQualityComponent, 'gn-metadata-quality'],
   [GnDatahubComponent, 'gn-datahub'],
 ]
 
@@ -81,6 +83,7 @@ const CUSTOM_ELEMENTS: [
     GnMapViewerComponent,
     GnFigureDatasetsComponent,
     GnDatasetViewMapComponent,
+    GnMetadataQualityComponent,
   ],
   imports: [
     BrowserModule,

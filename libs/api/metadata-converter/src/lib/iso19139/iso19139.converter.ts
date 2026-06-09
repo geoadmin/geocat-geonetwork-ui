@@ -103,6 +103,7 @@ export class Iso19139Converter extends BaseConverter<string> {
     contactsForResource: readContactsForResource,
     keywords: readKeywords,
     topics: readIsoTopics,
+    subtopics: () => undefined, // specific to eCH-0271, not supported in ISO19139
     licenses: readLicenses,
     legalConstraints: readLegalConstraints,
     securityConstraints: readSecurityConstraints,
@@ -144,6 +145,7 @@ export class Iso19139Converter extends BaseConverter<string> {
     contactsForResource: writeContactsForResource,
     keywords: writeKeywords,
     topics: writeTopics,
+    subtopics: () => undefined, // specific to eCH-0271, not supported in ISO19139
     licenses: writeLicenses,
     legalConstraints: writeLegalConstraints,
     securityConstraints: writeSecurityConstraints,
