@@ -4,7 +4,9 @@ import {
   Input,
   OnChanges,
   SimpleChanges,
+  inject,
 } from '@angular/core'
+import { TranslateService } from '@ngx-translate/core'
 import {
   MetadataQualityItem,
   MetadataQualityItemComponent,
@@ -58,6 +60,8 @@ export class MetadataQualityComponent implements OnChanges {
 
   items: MetadataQualityItem[] = []
 
+  private translateService = inject(TranslateService)
+
   get qualityScore() {
     const qualityScore = !this.forceComputeScore
       ? this.metadata?.extras?.qualityScore
@@ -72,6 +76,38 @@ export class MetadataQualityComponent implements OnChanges {
     return Math.round(
       (this.items.filter(({ value }) => value).length * 100) / this.items.length
     )
+  }
+
+  get qualityScoreFraction(): string {
+    const validCount = this.items.filter(({ value }) => value).length
+    const totalCount = this.items.length
+    return `${validCount}/${totalCount}`
+  }
+
+  get qualityScoreLabel(): string {
+    const score = this.qualityScore
+    if (score <= 50) {
+      return this.translateService.instant('record.metadata.quality.score.insufficient')
+    } else if (score < 70) {
+      return this.translateService.instant('record.metadata.quality.score.average')
+    } else if (score < 90) {
+      return this.translateService.instant('record.metadata.quality.score.good')
+    } else {
+      return this.translateService.instant('record.metadata.quality.score.excellent')
+    }
+  }
+
+  get qualityScoreColor(): string {
+    const score = this.qualityScore
+    if (score <= 50) {
+      return 'bg-red-500'
+    } else if (score < 70) {
+      return 'bg-yellow-500'
+    } else if (score < 90) {
+      return 'bg-lime-500'
+    } else {
+      return 'bg-green-500'
+    }
   }
 
   initialize() {
