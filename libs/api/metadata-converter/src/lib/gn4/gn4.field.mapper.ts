@@ -65,28 +65,53 @@ export class Gn4FieldMapper {
         { qualityScore: selectField(source, 'qualityScore') },
         output
       ),
-    resourceTitleObject: (output, source) => ({
-      ...output,
-      title: selectFallback(
-        selectTranslatedField(
-          source,
-          'resourceTitleObject',
-          this.getLocalizedIndexKey
-        ),
-        'no title'
-      ),
-    }),
-    resourceAbstractObject: (output, source) => ({
-      ...output,
-      abstract: selectFallback(
-        selectTranslatedField(
-          source,
-          'resourceAbstractObject',
-          this.getLocalizedIndexKey
-        ),
-        'no title'
-      ),
-    }),
+    resourceTitleObject: (output, source) => {
+      const titleObject = selectField<SourceWithUnknownProps>(
+        source,
+        'resourceTitleObject'
+      )
+      return this.addExtra(
+        { resourceTitleObject: titleObject },
+        {
+          ...output,
+          title: selectFallback(
+            selectTranslatedField(
+              source,
+              'resourceTitleObject',
+              this.getLocalizedIndexKey
+            ),
+            'no title'
+          ),
+        }
+      )
+    },
+    resourceAbstractObject: (output, source) => {
+      const abstractObject = selectField<SourceWithUnknownProps>(
+        source,
+        'resourceAbstractObject'
+      )
+      return this.addExtra(
+        { resourceAbstractObject: abstractObject },
+        {
+          ...output,
+          abstract: selectFallback(
+            selectTranslatedField(
+              source,
+              'resourceAbstractObject',
+              this.getLocalizedIndexKey
+            ),
+            'no abstract'
+          ),
+        }
+      )
+    },
+    resourceAltTitleObject: (output, source) => {
+      const altTitleObject = selectField<SourceWithUnknownProps[]>(
+        source,
+        'resourceAltTitleObject'
+      )
+      return this.addExtra({ resourceAltTitleObject: altTitleObject }, output)
+    },
     overview: (output, source) => {
       const firstOverview = getFirstValue(selectField(source, 'overview'))
       const description = selectTranslatedValue<string>(
@@ -114,12 +139,29 @@ export class Gn4FieldMapper {
         ),
       ],
     }),
-    cl_status: (output, source) => ({
+    cl_subTopicCategory: (output, source) => ({
       ...output,
-      status: getStatusFromStatusCode(
-        selectField(getFirstValue(selectField(source, 'cl_status')), 'key')
-      ),
+      subtopics: [
+        ...(output.subtopics || []),
+        ...getAsArray(
+          selectField<SourceWithUnknownProps[]>(source, 'cl_subTopicCategory')
+        ).map((subtopic) =>
+          selectTranslatedValue<string>(subtopic, this.getLocalizedIndexKey)
+        ),
+      ],
     }),
+    cl_status: (output, source) => {
+      const statusObject = getFirstValue(selectField(source, 'cl_status'))
+      return this.addExtra(
+        { cl_statusObject: statusObject },
+        {
+          ...output,
+          status: getStatusFromStatusCode(
+            selectField(statusObject, 'key')
+          ),
+        }
+      )
+    },
     cl_maintenanceAndUpdateFrequency: (output, source) => ({
       ...output,
       updateFrequency: getUpdateFrequencyFromFrequencyCode(
@@ -265,14 +307,20 @@ export class Gn4FieldMapper {
           selectField(source, 'MD_LegalConstraintsUseLimitationObject')
         )
       ),
-    MD_LegalConstraintsOtherConstraintsObject: (output, source) =>
-      this.constraintField(
-        'legal',
-        output,
-        getAsArray(
-          selectField(source, 'MD_LegalConstraintsOtherConstraintsObject')
+    MD_LegalConstraintsOtherConstraintsObject: (output, source) => {
+      const otherConstraints = selectField<SourceWithUnknownProps>(
+        source,
+        'MD_LegalConstraintsOtherConstraintsObject'
+      )
+      return this.addExtra(
+        { MD_LegalConstraintsOtherConstraintsObject: otherConstraints },
+        this.constraintField(
+          'legal',
+          output,
+          getAsArray(otherConstraints)
         )
-      ),
+      )
+    },
     MD_SecurityConstraintsUseLimitationObject: (output, source) =>
       this.constraintField(
         'security',

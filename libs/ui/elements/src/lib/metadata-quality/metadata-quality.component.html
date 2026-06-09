@@ -3,12 +3,17 @@
     class="flex items-center metadata-quality min-w-0"
     [ngClass]="{ 'text-xs leading-[8px] m-h-[120px]': smaller }"
   >
-    <gn-ui-progress-bar
-      tabindex="0"
-      [value]="qualityScore"
-      [type]="'light'"
-      class="flex-grow"
-    ></gn-ui-progress-bar>
+    <div class="flex-grow flex items-center gap-2">
+      <gn-ui-progress-bar
+        tabindex="0"
+        [value]="qualityScore"
+        [type]="'light'"
+        [customLabel]="qualityScoreLabel"
+        [barColor]="qualityScoreColor"
+        class="flex-grow"
+      ></gn-ui-progress-bar>
+      <span class="text-xs text-gray-600 whitespace-nowrap">{{ qualityScoreFraction }}</span>
+    </div>
     @if (popoverDisplay) {
       <gn-ui-popover
         [content]="popoverItems"
