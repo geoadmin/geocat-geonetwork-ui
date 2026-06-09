@@ -103,7 +103,7 @@ export class Iso19139Converter extends BaseConverter<string> {
     contactsForResource: readContactsForResource,
     keywords: readKeywords,
     topics: readIsoTopics,
-    subTopics: () => undefined, // not supported in ISO19139
+    subtopics: () => undefined, // specific to eCH-0271, not supported in ISO19139
     licenses: readLicenses,
     legalConstraints: readLegalConstraints,
     securityConstraints: readSecurityConstraints,
@@ -145,7 +145,7 @@ export class Iso19139Converter extends BaseConverter<string> {
     contactsForResource: writeContactsForResource,
     keywords: writeKeywords,
     topics: writeTopics,
-    subTopics: () => undefined, // not supported in ISO19139
+    subtopics: () => undefined, // specific to eCH-0271, not supported in ISO19139
     licenses: writeLicenses,
     legalConstraints: writeLegalConstraints,
     securityConstraints: writeSecurityConstraints,
@@ -218,20 +218,11 @@ export class Iso19139Converter extends BaseConverter<string> {
   }
 
   readBaseRecord(rootEl: XmlElement, tr: RecordTranslations): CatalogRecord {
-    console.log('[readBaseRecord] START - Input translations:', tr)
-
     const uniqueIdentifier = this.readers['uniqueIdentifier'](rootEl, tr)
     const kind = this.readers['kind'](rootEl, tr)
     const ownerOrganization = this.readers['ownerOrganization'](rootEl, tr)
-
-    console.log('[readBaseRecord] About to read title...')
     const title = this.readers['title'](rootEl, tr)
-    console.log('[readBaseRecord] After reading title, tr:', tr)
-
-    console.log('[readBaseRecord] About to read abstract...')
     const abstract = this.readers['abstract'](rootEl, tr)
-    console.log('[readBaseRecord] After reading abstract, tr:', tr)
-
     const contacts = this.readers['contacts'](rootEl, tr)
     const contactsForResource = this.readers['contactsForResource'](rootEl, tr)
     const recordUpdated = this.readers['recordUpdated'](rootEl, tr)
@@ -242,7 +233,6 @@ export class Iso19139Converter extends BaseConverter<string> {
     const resourcePublished = this.readers['resourcePublished'](rootEl, tr)
     const keywords = this.readers['keywords'](rootEl, tr)
     const topics = this.readers['topics'](rootEl, tr)
-    const subTopics = this.readers['subTopics'](rootEl, tr) as string[] | undefined
     const legalConstraints = this.readers['legalConstraints'](rootEl, tr)
     const otherConstraints = this.readers['otherConstraints'](rootEl, tr)
     const securityConstraints = this.readers['securityConstraints'](rootEl, tr)
@@ -261,8 +251,6 @@ export class Iso19139Converter extends BaseConverter<string> {
       url?: string
     }>
     const spatialExtents = this.readers['spatialExtents'](rootEl, tr)
-
-    console.log('[readBaseRecord] Final translations before returning:', tr)
 
     return {
       uniqueIdentifier,
@@ -283,7 +271,6 @@ export class Iso19139Converter extends BaseConverter<string> {
       contactsForResource,
       keywords,
       topics,
-      ...(subTopics && subTopics.length > 0 && { subTopics }),
       licenses,
       legalConstraints,
       securityConstraints,
@@ -299,21 +286,10 @@ export class Iso19139Converter extends BaseConverter<string> {
   async readRecord(document: string): Promise<CatalogRecord> {
     const doc = parseXmlString(document)
     const rootEl = getRootElement(doc)
-
-    // DEBUG: Log the root element name
-    console.log('[readRecord] Root element name:', rootEl?.name)
-    console.log('[readRecord] Converter class:', this.constructor.name)
-
-    // Transform elements BEFORE reading (e.g., CHE -> ISO19115-3)
-    this.beforeDocumentCreation(rootEl)
-
     const tr: RecordTranslations = {}
-    console.log('[readRecord] Created empty translations object')
-
     const kind = this.readers['kind'](rootEl, tr) as RecordKind
 
     if (kind === 'dataset') {
-      console.log('[readRecord] Reading dataset fields...')
       const status = this.readers['status'](rootEl, tr)
       const spatialRepresentation = this.readers['spatialRepresentation'](
         rootEl,
@@ -322,8 +298,6 @@ export class Iso19139Converter extends BaseConverter<string> {
       const temporalExtents = this.readers['temporalExtents'](rootEl, tr)
       const lineage = this.readers['lineage'](rootEl, tr)
       const updateFrequency = this.readers['updateFrequency'](rootEl, tr)
-
-      console.log('[readRecord] Translations object after reading all fields:', tr)
 
       return this.afterRecordRead({
         ...this.readBaseRecord(rootEl, tr),
@@ -336,12 +310,9 @@ export class Iso19139Converter extends BaseConverter<string> {
         translations: tr,
       } as DatasetRecord)
     } else if (kind === 'reuse') {
-      console.log('[readRecord] Reading reuse fields...')
       const lineage = this.readers['lineage'](rootEl, tr)
       const temporalExtents = this.readers['temporalExtents'](rootEl, tr)
       const reuseType = this.readers['reuseType'](rootEl, tr)
-
-      console.log('[readRecord] Translations object after reading all fields:', tr)
 
       return this.afterRecordRead({
         ...this.readBaseRecord(rootEl, tr),
@@ -400,11 +371,10 @@ export class Iso19139Converter extends BaseConverter<string> {
       this.writers['recordCreated'](record, rootEl)
     fieldChanged('recordPublished') &&
       this.writers['recordPublished'](record, rootEl)
-
-    // CRITICAL: ALWAYS write title and abstract for multilingual support
-    // These must never be skipped to ensure proper PT_FreeText generation
-    this.writers['title'](record, rootEl)
-    this.writers['abstract'](record, rootEl)
+    ;(fieldChanged('title') || fieldChanged('translations')) &&
+      this.writers['title'](record, rootEl)
+    ;(fieldChanged('abstract') || fieldChanged('translations')) &&
+      this.writers['abstract'](record, rootEl)
 
     fieldChanged('resourceCreated') &&
       this.writers['resourceCreated'](record, rootEl)
@@ -416,10 +386,8 @@ export class Iso19139Converter extends BaseConverter<string> {
     fieldChanged('contactsForResource') &&
       this.writers['contactsForResource'](record, rootEl)
 
-    // CRITICAL: ALWAYS write keywords, topics, subTopics for proper categorization
-    this.writers['keywords'](record, rootEl)
+    fieldChanged('keywords') && this.writers['keywords'](record, rootEl)
     fieldChanged('topics') && this.writers['topics'](record, rootEl)
-    fieldChanged('subTopics') && this.writers['subTopics'](record, rootEl)
     fieldChanged('legalConstraints') &&
       this.writers['legalConstraints'](record, rootEl)
     fieldChanged('securityConstraints') &&
