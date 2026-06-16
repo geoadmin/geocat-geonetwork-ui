@@ -14,9 +14,12 @@ const ValidatorMapper: TValidatorMapper = {
       string,
       unknown
     > | undefined
+    const fre = titleObject?.['langfre'] as string | undefined
+    const ger = titleObject?.['langger'] as string | undefined
     return !!(
-      titleObject?.['langfre'] &&
-      titleObject?.['langger']
+      fre &&
+      ger &&
+      fre.trim() !== ger.trim()
     )
   },
   altTitleMultilingual: (record) => {
@@ -32,7 +35,8 @@ const ValidatorMapper: TValidatorMapper = {
           langfre &&
           langger &&
           langfre.trim().length <= 35 &&
-          langger.trim().length <= 35
+          langger.trim().length <= 35 &&
+          langfre.trim() !== langger.trim()
         )
       })
     )
@@ -43,9 +47,12 @@ const ValidatorMapper: TValidatorMapper = {
       string,
       unknown
     > | undefined
+    const fre = abstractObject?.['langfre'] as string | undefined
+    const ger = abstractObject?.['langger'] as string | undefined
     return !!(
-      abstractObject?.['langfre'] &&
-      abstractObject?.['langger']
+      fre &&
+      ger &&
+      fre.trim() !== ger.trim()
     )
   },
   keywords: (record) => (record?.keywords?.length ?? 0) > 1,
@@ -112,6 +119,35 @@ const ValidatorMapper: TValidatorMapper = {
     > | undefined
     return !!statusObject
   },
+  linkDownload: (record) =>
+    !!(record?.onlineResources?.some((r) => r.type === 'download')),
+  linkService: (record) =>
+    !!(record?.onlineResources?.some((r) => r.type === 'service' || r.type === 'endpoint')),
+  linkMapPreview: (record) => {
+    const linkProtocols = record?.extras?.linkProtocol as
+      | string[]
+      | undefined
+    return !!(
+      linkProtocols?.some(
+        (p) =>
+          p?.startsWith('MAP:') || p === 'CHTOPO:specialised-geoportal'
+      )
+    )
+  },
+  featureCatalog: (record) => {
+    const featureTypes = record?.extras?.['featureTypes'] as
+      | Array<{ attributeTable?: unknown[]; attributes?: unknown[] }>
+      | undefined
+    const hasEmbedded = !!(featureTypes?.some(
+      (ft) => (ft?.attributeTable?.length ?? ft?.attributes?.length ?? 0) > 0
+    ))
+    const hasExternal = !!record?.extras?.['featureCatalogIdentifier']
+    return hasEmbedded || hasExternal
+  },
+  resourceFormat: (record) => {
+    const formats = record?.extras?.format as string[] | undefined
+    return !!(formats?.some((f) => typeof f === 'string' && f.trim().length > 0))
+  },
 } as const
 
 export type ValidatorMapperKeys = keyof typeof ValidatorMapper & string
@@ -123,45 +159,42 @@ export function getAllKeysValidator() {
 function getMappersFromKind(kind: RecordKind) {
   let kindKeys = <ValidatorMapperKeys[]>[]
   const commonsKeys = <ValidatorMapperKeys[]>[
-    //Less precise as titleMultilingual
-    //'title',
     'titleMultilingual',
     'altTitleMultilingual',
     'abstractMultilingual',
-    //Less precise as abstractMultilingual
-    //'abstract',
     'keywords',
-    //Less precise as legalConstraintsOtherConstraints
-    //'legalConstraints',
-    'legalConstraintsOtherConstraints',
-    //Less precise as contactsForResourceWithOwner
-    //'contacts',
-    'contactsPointOfContactEmail',
-    'contactsForResourceWithOwner',
-    'status',
+    'subtopics',
+    'organisation',
+    'linkDownload',
+    'linkService',
+    'linkMapPreview',
   ]
 
   switch (kind) {
     case 'reuse':
       kindKeys = [
-        //'topics',
-        'subtopics',
-        'organisation',
         'source'
       ]
       break
     case 'service':
-      kindKeys = []
+      kindKeys = [
+        'featureCatalog',
+        'resourceFormat',
+        'legalConstraintsOtherConstraints',
+        'contactsPointOfContactEmail',
+        'contactsForResourceWithOwner',
+        'status'
+      ]
       break
     case 'dataset':
     default:
       kindKeys = [
-        //Mandatory in eCH-0271 (maintenanceAndUpdateFrequency AND CI_DateTypeCode="creation")
-        //'updateFrequency',
-        //Mandatory in eCH-0271 (TopicCategory)
-        //'topics',
-        'subtopics',
-        'organisation'
+        'featureCatalog',
+        'resourceFormat',
+        'legalConstraintsOtherConstraints',
+        'contactsPointOfContactEmail',
+        'contactsForResourceWithOwner',
+        'status'
       ]
   }
 

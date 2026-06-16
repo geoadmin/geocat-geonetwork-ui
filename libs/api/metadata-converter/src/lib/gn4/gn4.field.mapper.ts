@@ -247,6 +247,16 @@ export class Gn4FieldMapper {
         onlineResources,
       } as CatalogRecord
     },
+    linkProtocol: (output, source) =>
+      this.addExtra(
+        { linkProtocol: getAsArray(selectField(source, 'linkProtocol')) },
+        output
+      ),
+    format: (output, source) =>
+      this.addExtra(
+        { format: getAsArray(selectField(source, 'format')) },
+        output
+      ),
     contact: (output, source) => ({
       ...output,
       contacts: [
