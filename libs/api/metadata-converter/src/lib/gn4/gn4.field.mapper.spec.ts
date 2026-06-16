@@ -137,6 +137,9 @@ describe('Gn4FieldMapper', () => {
           const result = mappingFn(output, source)
           expect(result).toEqual({
             title: 'Default title',
+            extras: {
+              resourceTitleObject: { default: 'Default title', langfre: 'French title' },
+            },
           })
         })
         it('resourceAbstractObject - should return a function that correctly maps the field to fre lang', () => {
@@ -153,6 +156,27 @@ describe('Gn4FieldMapper', () => {
           const result = mappingFn(output, source)
           expect(result).toEqual({
             abstract: 'French abstract',
+            extras: {
+              resourceAbstractObject: { default: 'Default abstract', langfre: 'French abstract' },
+            },
+          })
+        })
+        it('resourceAltTitleObject - should store alt title array in extras', () => {
+          const fieldName = 'resourceAltTitleObject'
+          const mappingFn = service.getMappingFn(fieldName)
+          const output = {}
+          const source = {
+            resourceAltTitleObject: [
+              { langfre: 'Titre alternatif FR', langger: 'Alternativer Titel DE' },
+            ],
+          }
+          const result = mappingFn(output, source)
+          expect(result).toEqual({
+            extras: {
+              resourceAltTitleObject: [
+                { langfre: 'Titre alternatif FR', langger: 'Alternativer Titel DE' },
+              ],
+            },
           })
         })
         it('overview - should return a function that correctly maps the field', () => {
@@ -194,7 +218,43 @@ describe('Gn4FieldMapper', () => {
             },
           }
           const result = mappingFn(output, source)
-          expect(result).toEqual({ status: 'completed' })
+          expect(result).toEqual({ status: 'completed', extras: { cl_statusObject: { key: 'completed', default: 'Finalisé', langfre: 'Finalisé', link: 'http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_ProgressCode' } } })
+        })
+        it('cl_subTopicCategory - should return a function that maps subtopics', () => {
+          translateService.currentLang = 'de'
+          const fieldName = 'cl_subTopicCategory'
+          const mappingFn = service.getMappingFn(fieldName)
+          const output = {}
+          const source = {
+            cl_subTopicCategory: [
+              { default: 'Subtopic 1', langger: 'Unterthema 1' },
+              { default: 'Subtopic 2', langger: 'Unterthema 2' },
+            ],
+          }
+          const result = mappingFn(output, source)
+          expect(result).toEqual({
+            subtopics: ['Unterthema 1', 'Unterthema 2'],
+          })
+        })
+        it('MD_LegalConstraintsOtherConstraintsObject - should store in extras and add to legalConstraints', () => {
+          translateService.currentLang = 'de'
+          const fieldName = 'MD_LegalConstraintsOtherConstraintsObject'
+          const mappingFn = service.getMappingFn(fieldName)
+          const output = {}
+          const source = {
+            MD_LegalConstraintsOtherConstraintsObject: [
+              { default: 'CC-BY', langger: 'CC-BY' },
+            ],
+          }
+          const result = mappingFn(output, source)
+          expect(result).toEqual({
+            legalConstraints: [{ text: 'CC-BY' }],
+            extras: {
+              MD_LegalConstraintsOtherConstraintsObject: [
+                { default: 'CC-BY', langger: 'CC-BY' },
+              ],
+            },
+          })
         })
         it('isHarvested - should return a function that correctly maps the field', () => {
           const fieldName = 'isHarvested'
@@ -215,6 +275,60 @@ describe('Gn4FieldMapper', () => {
           }
           const result = mappingFn(output, source)
           expect(result).toEqual({ extras: { edit: true } })
+        })
+        it('linkProtocol - should return a function that stores protocols in extras', () => {
+          const fieldName = 'linkProtocol'
+          const mappingFn = service.getMappingFn(fieldName)
+          const output = {}
+          const source = {
+            linkProtocol: ['MAP:Preview', 'OGC:WMS', 'WWW:DOWNLOAD-URL'],
+          }
+          const result = mappingFn(output, source)
+          expect(result).toEqual({
+            extras: {
+              linkProtocol: ['MAP:Preview', 'OGC:WMS', 'WWW:DOWNLOAD-URL'],
+            },
+          })
+        })
+        it('format - should return a function that stores formats in extras', () => {
+          const fieldName = 'format'
+          const mappingFn = service.getMappingFn(fieldName)
+          const output = {}
+          const source = {
+            format: ['ESRI Shapefile (SHP)', 'GeoJSON'],
+          }
+          const result = mappingFn(output, source)
+          expect(result).toEqual({
+            extras: {
+              format: ['ESRI Shapefile (SHP)', 'GeoJSON'],
+            },
+          })
+        })
+        it('featureTypes - should return a function that stores featureTypes in extras', () => {
+          const fieldName = 'featureTypes'
+          const mappingFn = service.getMappingFn(fieldName)
+          const output = {}
+          const source = {
+            featureTypes: [
+              {
+                typeName: 'Bornes parcellaires',
+                definition: '',
+                attributeTable: [{ name: 'ID', type: 'string' }],
+              },
+            ],
+          }
+          const result = mappingFn(output, source)
+          expect(result).toEqual({
+            extras: {
+              featureTypes: [
+                {
+                  typeName: 'Bornes parcellaires',
+                  definition: '',
+                  attributeTable: [{ name: 'ID', type: 'string' }],
+                },
+              ],
+            },
+          })
         })
         it('languages - should return a list of languages even with unsupported ones and without defaultLang', () => {
           const fieldName = 'otherLanguage'
