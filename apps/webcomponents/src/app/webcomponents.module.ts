@@ -53,9 +53,11 @@ import { RouterModule, TitleStrategy } from '@angular/router'
 // eslint-disable-next-line @nx/enforce-module-boundaries
 import { DATAHUB_ROUTER_PROVIDERS } from '@geonetwork-ui/apps/datahub/app.providers.ts'
 import { NoopTitleStrategy } from './noop-title-strategy.service'
+import { MetadataQualityComponent } from '@geonetwork-ui/ui/elements'
+type WebComponentConstructor = new (...args: any[]) => BaseComponent | GnDatahubComponent | MetadataQualityComponent;
 
 const CUSTOM_ELEMENTS: [
-  new (...args) => BaseComponent | GnDatahubComponent,
+  WebComponentConstructor,
   string,
 ][] = [
   [GnFacetsComponent, 'gn-facets'],
@@ -68,6 +70,7 @@ const CUSTOM_ELEMENTS: [
   [GnFigureDatasetsComponent, 'gn-figure-datasets'],
   [GnDatasetViewMapComponent, 'gn-dataset-view-map'],
   [GnMetadataQualityComponent, 'gn-metadata-quality'],
+  [MetadataQualityComponent, 'gn-ui-metadata-quality'],
   [GnDatahubComponent, 'gn-datahub'],
 ]
 
@@ -114,6 +117,7 @@ const CUSTOM_ELEMENTS: [
         },
       }
     ),
+    MetadataQualityComponent,
   ],
   providers: [
     importProvidersFrom(
