@@ -22,8 +22,35 @@ export class GnMetadataQualityComponent extends BaseComponent {
   @Input() smaller = false
   @Input() metadataQualityDisplay = true
   @Input() popoverDisplay = true
-  @Input() propsToValidate?: ValidatorMapperKeys[] | string // Can be JSON string array
   @Input() forceComputeScore = false
+
+  private _propsToValidate?: ValidatorMapperKeys[] | string
+  public parsedPropsToValidate?: ValidatorMapperKeys[]
+
+  @Input()
+  set propsToValidate(value: ValidatorMapperKeys[] | string | undefined) {
+    this._propsToValidate = value
+    if (!value) {
+      this.parsedPropsToValidate = undefined
+      return
+    }
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value)
+        this.parsedPropsToValidate = Array.isArray(parsed) ? parsed : undefined
+      } catch (e) {
+        console.warn('Failed to parse propsToValidate JSON:', e)
+        this.parsedPropsToValidate = undefined
+      }
+    } else if (Array.isArray(value)) {
+      this.parsedPropsToValidate = value
+    } else {
+      this.parsedPropsToValidate = undefined
+    }
+  }
+  get propsToValidate() {
+    return this._propsToValidate
+  }
 
   get parsedMetadata(): CatalogRecord | null {
     if (!this.metadata) return null
@@ -36,19 +63,6 @@ export class GnMetadataQualityComponent extends BaseComponent {
       }
     }
     return this.metadata
-  }
-
-  get parsedPropsToValidate(): ValidatorMapperKeys[] | undefined {
-    if (!this.propsToValidate) return undefined
-    if (typeof this.propsToValidate === 'string') {
-      try {
-        return JSON.parse(this.propsToValidate)
-      } catch (e) {
-        console.warn('Failed to parse propsToValidate JSON:', e)
-        return undefined
-      }
-    }
-    return this.propsToValidate
   }
 
   get parsedForceComputeScore(): boolean {
