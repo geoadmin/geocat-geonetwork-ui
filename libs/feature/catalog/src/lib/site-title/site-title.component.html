@@ -1,0 +1,6 @@
+@if (info$ | async; as info) {
+  <gn-ui-catalog-title
+    [name]="info['system/site/name']"
+    [tooltip]="info['system/site/organization']"
+  ></gn-ui-catalog-title>
+}

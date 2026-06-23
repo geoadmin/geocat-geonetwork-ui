@@ -1,0 +1,38 @@
+<div
+  class="group flex items-center justify-between title border-b border-gray-100 cursor-pointer"
+  (click)="toggle()"
+  data-cy="expandable-panel-header"
+>
+  <div class="grow py-2.5">
+    @if (titleTemplate) {
+      <div data-cy="expandable-panel-custom-title">
+        <ng-container *ngTemplateOutlet="titleTemplate"></ng-container>
+      </div>
+    } @else {
+      <div
+        class="font-medium text-black text-sm"
+        data-cy="expandable-panel-title"
+      >
+        {{ title }}
+      </div>
+    }
+  </div>
+  <div
+    class="w-8 opacity-25 text-primary group-hover:opacity-100 transition-opacity flex items-center shrink-0"
+  >
+    <ng-icon
+      [name]="collapsed ? 'matAdd' : 'matRemove'"
+      [style.color]="iconColor"
+    ></ng-icon>
+  </div>
+</div>
+@if (!collapsed) {
+  <div
+    class="content overflow-hidden transition-all duration-300"
+    [ngClass]="collapsed ? 'ease-out' : 'ease-in'"
+    #contentDiv
+    data-cy="expandable-panel-content"
+  >
+    <ng-content></ng-content>
+  </div>
+}

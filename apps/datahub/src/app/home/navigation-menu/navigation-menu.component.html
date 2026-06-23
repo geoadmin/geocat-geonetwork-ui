@@ -1,0 +1,28 @@
+@if ((isMobile$ | async) === false) {
+  <ng-container *ngTemplateOutlet="tabLinksButtons"></ng-container>
+}
+@if ((isMobile$ | async) === true) {
+  <div
+    class="fixed bottom-0 text-white bg-secondary w-full flex justify-around"
+  >
+    <ng-container *ngTemplateOutlet="tabLinksButtons"></ng-container>
+  </div>
+}
+
+<ng-template #tabLinksButtons>
+  @for (l of tabLinks; track l) {
+    <button
+      [routerLink]="l.link"
+      [ngClass]="
+        (activeLink$ | async).link === l.link
+          ? 'decoration-primary'
+          : 'decoration-transparent hover:decoration-primary transition-colors'
+      "
+      class="py-4 uppercase truncate underline decoration-4 underline-offset-[19px]"
+      [style.color]="foregroundColor"
+      translate
+    >
+      {{ l.label }}
+    </button>
+  }
+</ng-template>

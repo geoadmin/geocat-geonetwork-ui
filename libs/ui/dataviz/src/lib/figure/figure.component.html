@@ -1,0 +1,32 @@
+<div
+  class="flex flex-row justify-start items-center overflow-hidden"
+  data-test="figureTitle"
+  [title]="
+    figure.toString() +
+    ' ' +
+    unit +
+    ' ' +
+    (title | translate: { count: figure })
+  "
+>
+  <div
+    data-test="icon-container"
+    class="{{ bgClass }} {{
+      textClass
+    }} text-[1.875em] rounded-full mr-[0.55em] flex justify-center items-center w-[2.2em] h-[2.2em] shrink-0"
+    style="width: 2.2em; height: 2.2em"
+  >
+    <ng-icon class="text-[0.66em]" [name]="icon"> </ng-icon>
+  </div>
+  <div class="shrink overflow-hidden">
+    <div class="figure-block text-[1.5em] text-black">
+      <span class="figure font-medium mr-[0.3em]" data-test="figure">{{
+        figure
+      }}</span>
+      <span class="unit text-[0.665em]">{{ unit }}</span>
+    </div>
+    <div translate class="title truncate" [translateParams]="{ count: figure }">
+      {{ title }}
+    </div>
+  </div>
+</div>

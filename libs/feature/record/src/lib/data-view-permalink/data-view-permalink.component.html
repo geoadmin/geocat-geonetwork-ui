@@ -1,0 +1,6 @@
+@if (wcEmbedderBaseUrl) {
+  <gn-ui-copy-text-button
+    [text]="permalinkUrl$ | async"
+    [tooltipText]="'tooltip.url.copy' | translate"
+  ></gn-ui-copy-text-button>
+}

@@ -1,0 +1,28 @@
+{
+  "name": "api-repository",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/api/repository/src",
+  "prefix": "geonetwork-ui",
+  "tags": ["type:api"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/api/repository/jest.config.ts",
+        "tsConfig": "libs/api/repository/tsconfig.spec.json"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": [
+          "libs/api/repository/**/*.ts",
+          "libs/api/repository/**/*.html"
+        ]
+      }
+    }
+  }
+}

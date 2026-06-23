@@ -1,0 +1,219 @@
+import {
+  FieldsService,
+  LocationBbox,
+  SearchFacade,
+} from '@geonetwork-ui/feature/search'
+import {
+  SortByEnum,
+  SortByField,
+} from '@geonetwork-ui/common/domain/model/search'
+import { BehaviorSubject, of } from 'rxjs'
+import { RouterFacade } from '../state/router.facade'
+import { RouterSearchService } from './router-search.service'
+import { TestBed } from '@angular/core/testing'
+import { RouterService } from '../router.service'
+import { ROUTER_CONFIG } from '../router.config'
+
+let state = {}
+class SearchFacadeMock {
+  searchFilters$ = new BehaviorSubject(state)
+  sortBy$: BehaviorSubject<SortByField> = new BehaviorSubject([
+    'asc',
+    'changeDate',
+  ])
+}
+
+class RouterFacadeMock {
+  setSearch = jest.fn()
+  updateSearch = jest.fn()
+  go = jest.fn()
+}
+
+class FieldsServiceMock {
+  mapping = {
+    OrgForResource: 'publisher',
+    tag: 'keyword',
+    any: 'q',
+  }
+  readFieldValuesFromFilters = jest.fn((filters) =>
+    of(
+      Object.keys(filters).reduce((prev, curr) => {
+        const fieldName = this.mapping[curr]
+        const filter = filters[curr]
+        let values = []
+        if (typeof filter === 'string') {
+          values = [filter]
+        } else if (filter) {
+          values = Object.keys(filter)
+        }
+        return {
+          ...prev,
+          [fieldName]: values,
+        }
+      }, {})
+    )
+  )
+}
+
+class RouterServiceMock {
+  getSearchRoute = jest.fn().mockReturnValue('/test/path')
+}
+
+describe('RouterSearchService', () => {
+  let service: RouterSearchService
+  let routerFacade: RouterFacade
+  let searchFacade: SearchFacade
+  let fieldsService: FieldsService
+
+  beforeEach(() => jest.resetAllMocks())
+
+  beforeEach(() => {
+    state = { OrgForResource: { mel: true } }
+    routerFacade = new RouterFacadeMock() as unknown as RouterFacade
+    searchFacade = new SearchFacadeMock() as unknown as SearchFacade
+    fieldsService = new FieldsServiceMock() as unknown as FieldsService
+
+    TestBed.configureTestingModule({
+      providers: [
+        RouterSearchService,
+        { provide: RouterFacade, useValue: routerFacade },
+        { provide: SearchFacade, useValue: searchFacade },
+        { provide: FieldsService, useValue: fieldsService },
+        { provide: RouterService, useClass: RouterServiceMock },
+        { provide: ROUTER_CONFIG, useValue: {} },
+      ],
+    })
+    service = TestBed.inject(RouterSearchService)
+  })
+
+  it('should be created', () => {
+    expect(service).toBeTruthy()
+  })
+  describe('#setSearch', () => {
+    it('dispatch setSearch with mapped params', async () => {
+      const state = {
+        OrgForResource: {
+          Org: true,
+        },
+      }
+      await service.setFilters(state)
+      expect(routerFacade.setSearch).toHaveBeenCalledWith({
+        publisher: ['Org'],
+        _sort: 'changeDate',
+      })
+    })
+
+    describe('when setting a full text criteria', () => {
+      beforeEach(() => {
+        const state = {
+          any: 'some text',
+          OrgForResource: {
+            Org: true,
+          },
+        }
+        service.updateFilters(state)
+      })
+      it('also applies a sort by relevancy', () => {
+        expect(routerFacade.updateSearch).toHaveBeenCalledWith({
+          q: ['some text'],
+          publisher: ['Org'],
+          _sort: '-_score',
+        })
+      })
+    })
+  })
+
+  describe('#setSortAndFilters', () => {
+    it('dispatch setSearch with mapped params', () => {
+      const filters = {
+        any: 'any',
+        OrgForResource: {
+          Org: true,
+        },
+      }
+      const sort = SortByEnum.RESOURCE_DATES
+      service.setSortAndFilters(filters, sort)
+      expect(routerFacade.setSearch).toHaveBeenCalledWith({
+        q: ['any'],
+        publisher: ['Org'],
+        _sort:
+          '-revisionDateForResource,-publicationDateForResource,-creationDateForResource',
+      })
+    })
+  })
+
+  describe('#setSortBy', () => {
+    it('dispatch sortBy', () => {
+      service.setSortBy(SortByEnum.RELEVANCY)
+      expect(routerFacade.updateSearch).toHaveBeenCalledWith({
+        _sort: '-_score',
+      })
+    })
+  })
+
+  describe('#updateSearch', () => {
+    beforeEach(() => {
+      const state = {
+        tag: 'opendata',
+      }
+      service.updateFilters(state)
+    })
+    it('dispatch updateSearch with merged mapped params', () => {
+      expect(routerFacade.updateSearch).toHaveBeenCalledWith({
+        keyword: ['opendata'],
+        publisher: ['mel'],
+      })
+    })
+    describe('when setting a full text criteria', () => {
+      beforeEach(() => {
+        const state = {
+          any: 'some text',
+        }
+        service.updateFilters(state)
+      })
+      it('also applies a sort by relevancy', () => {
+        expect(routerFacade.updateSearch).toHaveBeenCalledWith({
+          q: ['some text'],
+          publisher: ['mel'],
+          _sort: '-_score',
+        })
+      })
+    })
+  })
+
+  describe('#setLocationFilter', () => {
+    beforeEach(() => {
+      const location: LocationBbox = {
+        label: 'New location',
+        bbox: [4, 5, 6, 7],
+      }
+      service.setLocationFilter(location)
+    })
+    it('dispatch setLocationFilter with merged mapped params', () => {
+      expect(routerFacade.go).toHaveBeenCalledWith({
+        path: '/test/path',
+        query: {
+          location: 'New location',
+          bbox: '4,5,6,7',
+        },
+        queryParamsHandling: 'merge',
+      })
+    })
+  })
+
+  describe('#clearLocationFilter', () => {
+    beforeEach(() => {
+      service.clearLocationFilter()
+    })
+    it('dispatch clearLocationFilter with merged mapped params', () => {
+      expect(routerFacade.go).toHaveBeenCalledWith({
+        path: '/test/path',
+        query: {
+          location: undefined,
+          bbox: undefined,
+        },
+        queryParamsHandling: 'merge',
+      })
+    })
+  })
+})

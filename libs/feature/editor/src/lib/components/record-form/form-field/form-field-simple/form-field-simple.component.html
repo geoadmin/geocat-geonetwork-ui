@@ -1,0 +1,8 @@
+<input
+  [type]="type"
+  [readonly]="readonly"
+  [placeholder]="placeholder"
+  [ngModel]="value"
+  (ngModelChange)="valueChange.emit($event)"
+  class="gn-ui-text-input"
+/>

@@ -1,0 +1,162 @@
+export const elasticLinkFixture = (): Record<string, unknown> => ({
+  readmeLink: {
+    accessServiceProtocol: 'WWW:LINK',
+    description: 'Readme page',
+    url: 'http://envlit.ifremer.fr/resultats/quadrige',
+  },
+  doiLink: {
+    accessServiceProtocol: 'WWW:DOI',
+    description: 'DOI for the resource',
+    url: 'http://doi.org/123-456-678',
+  },
+  dataCsv: {
+    accessServiceProtocol: 'WWW:DOWNLOAD',
+    description: 'Data in CSV format',
+    name: 'abc.csv',
+    url: 'http://my.server/files/abc.csv',
+  },
+  dataPdf: {
+    accessServiceProtocol: 'WWW:DOWNLOAD',
+    description: 'Data in PDF format',
+    name: 'abc.pdf',
+    url: 'https://my.server/files/abc.pdf',
+  },
+  dataJpg: {
+    accessServiceProtocol: 'WWW:DOWNLOAD',
+    description: 'Data in JPG format',
+    name: 'abc.jpg',
+    url: 'https://my.server/files/abc.jpg',
+  },
+  dataZip: {
+    accessServiceProtocol: 'WWW:DOWNLOAD',
+    description: 'Data in ZIP format',
+    name: 'abc.zip',
+    url: 'https://my.server/files/abc.zip',
+  },
+  dataXls: {
+    accessServiceProtocol: 'WWW:DOWNLOAD',
+    description: 'Data in XLS format',
+    name: 'abc.xls',
+    url: 'https://my.server/files/abc.xls',
+  },
+  dataXlsx: {
+    accessServiceProtocol: 'WWW:DOWNLOAD',
+    description: 'Data in XLSX format',
+    name: 'abc.XLSX',
+    url: 'https://my.server/files/abc.XLSX',
+  },
+  dataJson: {
+    accessServiceProtocol: 'WWW:DOWNLOAD',
+    description: 'Data in JSON format',
+    name: 'abc.json',
+    url: 'https://my.server/files/abc.json',
+  },
+  geodataJson: {
+    accessServiceProtocol: 'WWW:DOWNLOAD',
+    description: 'Geographic data in GeoJSON format',
+    name: 'dataset.geojson',
+    url: 'http://my.server/files/geographic/dataset.geojson',
+  },
+  geodataJsonWithMimeType: {
+    accessServiceProtocol: 'WWW:DOWNLOAD:application/vnd.geo+json',
+    description: 'Geographic data in GeoJSON format',
+    name: 'dataset.geojson',
+    url: 'http://my.server/files/geographic/dataset',
+    mimeType: 'application/vnd.geo+json',
+  },
+  geodataKml: {
+    accessServiceProtocol: 'WWW:DOWNLOAD',
+    description: 'Geographic data in KML format',
+    name: 'dataset.kml',
+    url: 'http://my.server/files/geographic/dataset.kml',
+  },
+  geodataGpkg: {
+    accessServiceProtocol: 'WWW:DOWNLOAD',
+    description: 'Geographic data in geopackage format',
+    name: 'dataset.gpkg',
+    url: 'http://my.server/files/geographic/dataset.gpkg',
+  },
+  geodataShp: {
+    accessServiceProtocol: 'WWW:DOWNLOAD',
+    description: 'Geographic data in shapefile format',
+    name: 'dataset.shp',
+    url: 'http://my.server/files/geographic/dataset.zip',
+  },
+  geodataShpWithMimeType: {
+    accessServiceProtocol: 'WWW:DOWNLOAD:x-gis/x-shapefile',
+    description: 'Geographic data in shapefile format',
+    name: 'dataset',
+    url: 'http://my.server/files/geographic/dataset.zip',
+    mimeType: 'x-gis/x-shapefile',
+  },
+  geodataWms: {
+    accessServiceProtocol: 'OGC:WMS',
+    name: 'mylayer',
+    url: 'https://my.ogc.server/wms',
+  },
+  geodataWmts: {
+    accessServiceProtocol: 'OGC:WMTS',
+    name: 'mylayer',
+    url: 'https://my.ogc.server/wmts',
+  },
+  geodataWfs: {
+    accessServiceProtocol: 'OGC:WFS',
+    name: 'mylayer',
+    url: 'https://my.ogc.server/wfs',
+  },
+  geodataWms2: {
+    accessServiceProtocol: 'OGC:WMS',
+    name: 'myotherlayer',
+    url: 'https://my.ogc.server/wms',
+  },
+  geodataWfs2: {
+    accessServiceProtocol: 'OGC:WFS',
+    name: 'myotherlayer',
+    url: 'https://my.ogc.server/wfs',
+  },
+  geodataRest: {
+    accessServiceProtocol: 'ESRI:REST',
+    name: 'myrestlayer',
+    url: 'https://my.esri.server/FeatureServer',
+  },
+  geodataRestWfs: {
+    accessServiceProtocol: 'OGC:WFS',
+    name: 'mywfsrestlayer',
+    url: 'https://my.esri.server/WFSServer',
+  },
+  maplayerRest: {
+    accessServiceProtocol: 'ESRI:REST',
+    name: 'myotherrestlayer',
+    url: 'https://my.esri.server/MapServer',
+  },
+  landingPage: {
+    accessServiceProtocol: 'WWW:LINK:LANDING_PAGE',
+    name: 'landingpage link',
+    url: 'https://landing.page',
+  },
+  unknownFormat: {
+    accessServiceProtocol: 'WWW:DOWNLOAD-1.0-http--download',
+    name: 'Vue HTML des métadonnées sur internet',
+    url: 'http://catalogue.geo-ide.developpement-durable.gouv.fr/catalogue/srv/fre/catalog.search#/metadata/fr-120066022-jdd-199fd14c-2abb-4c14-b0f8-6c8d92e7b480',
+  },
+  geodataogcfeatures: {
+    accessServiceProtocol: 'OGC API - Features',
+    name: 'ogcapi features layer',
+    url: 'https://mel.integration.apps.gs-fr-prod.camptocamp.com/data/ogcapi/collections/comptages_velo/items?',
+  },
+  maplayerTms: {
+    accessServiceProtocol: 'TMS',
+    name: 'mytmslayer',
+    url: 'https://my.tms.server/MapServer',
+  },
+  maplayerTms2: {
+    accessServiceProtocol: 'OSGeo:TMS',
+    name: 'myothertmslayer',
+    url: 'https://my.tms.server/MapServer',
+  },
+  stacItems: {
+    accessServiceProtocol: 'STAC:Items',
+    name: 'stac layer',
+    url: '  https://stacapi-cdos.apps.okd.crocc.meso.umontpellier.fr/collections/lidarhd/items',
+  },
+})

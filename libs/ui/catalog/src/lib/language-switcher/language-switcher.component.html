@@ -1,0 +1,10 @@
+<gn-ui-dropdown-selector
+  [title]="'languages'"
+  [choices]="languageChoices"
+  (selectValue)="changeLanguage($event)"
+  [selected]="currentLang"
+  ariaName="languages"
+  [showTitle]="false"
+  extraBtnClass="bg-transparent flex justify-items-center !pl-2 !py-1 rounded-lg"
+>
+</gn-ui-dropdown-selector>

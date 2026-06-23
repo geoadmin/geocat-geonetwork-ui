@@ -1,0 +1,27 @@
+<span class="w-full inline-block relative">
+  <mat-date-range-input [rangePicker]="picker" class="gn-ui-text-input">
+    <input
+      matStartDate
+      placeholder="Start date"
+      [value]="startDate"
+      (dateInput)="startDateChange.emit($event.value)"
+    />
+    <input
+      matEndDate
+      placeholder="End date"
+      [value]="endDate"
+      (dateInput)="endDateChange.emit($event.value)"
+    />
+  </mat-date-range-input>
+
+  <gn-ui-button
+    type="light"
+    class="absolute inset-y-[var(--side-padding)] right-[var(--side-padding)] z-10"
+    (buttonClick)="picker.open()"
+    extraClass="h-full"
+    data-cy="date-picker-button"
+  >
+    <ng-icon name="iconoirCalendar" class="text-primary"></ng-icon>
+  </gn-ui-button>
+</span>
+<mat-date-range-picker #picker></mat-date-range-picker>

@@ -1,0 +1,52 @@
+import { CommonModule } from '@angular/common'
+import { HttpClient } from '@angular/common/http'
+import { Component, Input, OnInit, inject } from '@angular/core'
+import { NgIcon, provideIcons, provideNgIconsConfig } from '@ng-icons/core'
+import { TranslateDirective, TranslatePipe } from '@ngx-translate/core'
+import { map, mergeMap, Observable } from 'rxjs'
+import { matCloudDownloadOutline } from '@ng-icons/material-icons/outline'
+
+@Component({
+  selector: 'gn-ui-gpf-api-dl-list-item',
+  templateUrl: './gpf-api-dl-list-item.component.html',
+  styleUrls: ['./gpf-api-dl-list-item.component.css'],
+  standalone: true,
+  imports: [CommonModule, TranslateDirective, TranslatePipe, NgIcon],
+  providers: [
+    provideIcons({
+      matCloudDownloadOutline,
+    }),
+    provideNgIconsConfig({
+      size: '1.5em',
+    }),
+  ],
+})
+export class GpfApiDlListItemComponent implements OnInit {
+  protected http = inject(HttpClient)
+
+  @Input() link
+  @Input() color: string
+  @Input() format: string
+  @Input() isFromWfs: boolean
+  liste$: Observable<any>
+
+  ngOnInit(): void {
+    this.liste$ = this.http
+      .get(this.link['id'])
+      .pipe(map((response) => response['entry']))
+  }
+
+  downloadListe(): void {
+    this.http
+      .get(this.link['id'])
+      .pipe(
+        map((response) => response['entry']),
+        mergeMap((response) => response)
+      )
+      .subscribe((reponse) => this.download(reponse['id']))
+  }
+
+  download(url): void {
+    this.http.get(url).subscribe()
+  }
+}

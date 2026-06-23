@@ -1,0 +1,12 @@
+<div id="record-page">
+  <gn-ui-record-meta
+    [metadata]="mdViewFacade.metadata$ | async"
+  ></gn-ui-record-meta>
+  <datahub-record-header
+    [metadata]="mdViewFacade.metadata$ | async"
+  ></datahub-record-header>
+
+  <datahub-record-metadata
+    [metadataQualityDisplay]="metadataQualityDisplay"
+  ></datahub-record-metadata>
+</div>

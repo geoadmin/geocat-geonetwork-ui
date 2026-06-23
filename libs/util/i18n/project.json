@@ -1,0 +1,28 @@
+{
+  "name": "util-i18n",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/util/i18n/src",
+  "prefix": "gn-ui",
+  "tags": ["type:util", "scope:i18n", "scope:shared"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/util/i18n"],
+      "options": {
+        "jestConfig": "libs/util/i18n/jest.config.ts",
+        "tsConfig": "libs/util/i18n/tsconfig.spec.json"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": [
+          "libs/util/i18n/src/**/*.ts",
+          "libs/util/i18n/src/**/*.html"
+        ]
+      },
+      "outputs": ["{options.outputFile}"]
+    }
+  }
+}

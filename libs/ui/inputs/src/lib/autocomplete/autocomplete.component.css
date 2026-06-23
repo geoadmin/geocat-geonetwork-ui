@@ -1,0 +1,30 @@
+span {
+  --icon-padding: var(--gn-ui-text-input-border-size, 2px);
+  --icon-width: calc(var(--gn-ui-text-input-padding, 0.6em) * 2 + 1.25em);
+}
+/* this is because we don't want to change the popup alert font size */
+span > *:not(gn-ui-popup-alert) {
+  font-size: var(--gn-ui-text-input-font-size, 1em);
+}
+
+input:placeholder-shown {
+  text-overflow: ellipsis;
+}
+gn-ui-button {
+  --gn-ui-button-rounded: 0;
+  --gn-ui-button-width: var(--icon-width);
+  --gn-ui-button-padding: 0;
+  font-size: 1em;
+}
+ng-icon.search {
+  margin-top: 0.6rem;
+  margin-left: 0.6rem;
+}
+gn-ui-button:last-of-type {
+  --gn-ui-button-rounded: 0 var(--gn-ui-text-input-rounded, 0.25em)
+    var(--gn-ui-text-input-rounded, 0.25em) 0;
+}
+
+.mat-mdc-option.suggestion.mat-mdc-option-active {
+  background-color: var(--color-primary-lightest);
+}

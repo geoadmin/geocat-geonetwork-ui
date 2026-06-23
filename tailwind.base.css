@@ -1,0 +1,227 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* PLEASE NOTE: all Tailwind components should be prefixed by `gn-ui` */
+@layer components {
+  .container-sm {
+    max-width: 640px;
+  }
+  .container-md {
+    max-width: 768px;
+  }
+  .container-lg {
+    max-width: 1024px;
+  }
+
+  /* TODO: add prefix */
+  .card-shadow {
+    @apply shadow-xl hover:shadow-xl-hover transition-shadow;
+  }
+
+  /* ICON CLASSES */
+  .gn-ui-icon-small {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+  .gn-ui-icon-medium {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  /* LINK CLASSES */
+  .gn-ui-link {
+    @apply text-blue-600 hover:text-blue-700 hover:underline;
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 1px;
+  }
+  .gn-ui-link-external-icon {
+    content: 'open_in_new';
+    font-family: 'Material Symbols Outlined';
+    font-size: 0.9em;
+    display: inline-block;
+    vertical-align: top;
+    padding-top: 0.1em;
+  }
+  .gn-ui-link-external {
+    @apply gn-ui-link;
+  }
+  .gn-ui-link-external::before {
+    @apply gn-ui-link-external-icon;
+    padding-right: 0.2em;
+  }
+  .gn-ui-link-external-after {
+    @apply gn-ui-link;
+  }
+  .gn-ui-link-external-after::after {
+    @apply gn-ui-link-external-icon;
+    padding-left: 0.2em;
+  }
+
+  /* BUTTON CLASSES */
+  /* these are used behind the scenes by the `gn-ui-button` component */
+
+  /* this is a base class, do not use it directly */
+  .gn-ui-btn {
+    --rounded: var(--gn-ui-button-rounded, 0.25em);
+    --border-width: var(--gn-ui-button-border-width, 1px);
+    --padding: var(--gn-ui-button-padding, 1em);
+    --width: var(--gn-ui-button-width, auto);
+    --height: var(--gn-ui-button-height, auto);
+    --background: var(--gn-ui-button-background, var(--color-background));
+    --bg-hover: var(--gn-ui-button-bg-hover, var(--color-background));
+    --font-size: var(--gn-ui-button-font-size, 1em);
+    --color: var(--gn-ui-button-color, var(--color-main));
+    @apply flex flex-row items-center justify-center
+      text-[length:--font-size] leading-none
+      text-[color:--color]
+      p-[--padding] rounded-[--rounded] w-[--width] h-[--height] overflow-hidden
+      border-[length:--border-width] bg-[--background] transition-all duration-100
+      hover:bg-[--bg-hover] focus:bg-[--bg-hover] active:bg-[--background]
+      outline-none
+      relative
+      disabled:opacity-50 disabled:pointer-events-none
+      focus:z-10 active:z-10 hover:z-10;
+  }
+  /* makes sure icons will not make the buttons grow vertically */
+  .gn-ui-btn ng-icon {
+    margin-top: -0.5em;
+    margin-bottom: -0.5em;
+    flex-shrink: 0;
+  }
+
+  .gn-ui-btn-default {
+    @apply gn-ui-btn text-white
+      bg-gray-700 hover:bg-gray-800 hover:!text-white active:bg-gray-900
+      border-gray-700 focus:ring-4 focus:ring-gray-200 focus:text-gray-900;
+  }
+
+  .gn-ui-btn-primary {
+    @apply gn-ui-btn text-white
+      bg-primary hover:bg-primary-darker focus:bg-primary-darker active:bg-primary-darkest
+      border-primary focus:ring-4 focus:ring-primary-lightest;
+  }
+
+  .gn-ui-btn-secondary {
+    @apply gn-ui-btn text-white
+      bg-secondary hover:bg-secondary-darker focus:bg-secondary-darker active:bg-secondary-darkest
+      border-secondary focus:ring-4 focus:ring-secondary-lightest;
+  }
+
+  .gn-ui-btn-gray {
+    @apply gn-ui-btn text-black
+    bg-gray-100 hover:bg-gray-200 focus:bg-gray-200 active:bg-gray-300
+    border-gray-100 focus:ring-4 focus:ring-gray-50;
+  }
+
+  .gn-ui-btn-black {
+    @apply gn-ui-btn text-white
+    bg-black hover:bg-gray-950 focus:bg-gray-950 active:bg-gray-900
+    border-black focus:ring-4 focus:ring-gray-300;
+  }
+
+  .gn-ui-btn-outline {
+    @apply gn-ui-btn
+    hover:text-primary-darker focus:text-primary-darker active:text-primary-black
+    border-gray-300 hover:border-primary-lighter focus:border-primary-lighter focus:ring-4 focus:ring-primary-lightest active:border-primary-darker;
+  }
+
+  .gn-ui-btn-light {
+    @apply gn-ui-btn
+      hover:bg-gray-50 focus:bg-gray-50 active:bg-gray-100
+      bg-white border-white focus:ring-4 focus:ring-gray-300;
+  }
+
+  .gn-ui-card-s {
+    @apply min-h-[64px] w-full xs:min-w-[260px] xs:max-w-[280px] sm:min-w-[300px] sm:max-w-[500px] md:min-w-[230px];
+  }
+
+  .gn-ui-card-title {
+    @apply font-title font-medium text-black text-ellipsis overflow-hidden break-words line-clamp-3;
+  }
+
+  .gn-ui-card-icon {
+    @apply flex border border-gray-300 rounded-lg py-1 px-2 align-middle;
+  }
+
+  .gn-ui-card-detail {
+    @apply font-medium text-gray-500 text-ellipsis break-words text-sm;
+  }
+
+  /* DROPDOWN MULTISELECT CLASS */
+  .gn-ui-multiselect-counter {
+    --text-color: var(--gn-ui-multiselect-counter-text-color, white);
+    --background-color: var(
+      --gn-ui-multiselect-counter-background-color,
+      var(--color-primary-lightest)
+    );
+    @apply bg-[color:--background-color] text-[color:--text-color];
+  }
+
+  /* BADGE CLASS */
+  .gn-ui-badge {
+    --rounded: var(--gn-ui-badge-rounded, 0.25em);
+    --padding: var(--gn-ui-badge-padding, 0.375em 0.75em);
+    --font-weight: var(--gn-ui-badge-font-weight, 500);
+    --text-size: var(--gn-ui-badge-text-size, 0.875em);
+    --text-color: var(--gn-ui-badge-text-color, var(--color-gray-50));
+    --background-color: var(--gn-ui-badge-background-color, black);
+    --opacity: var(--gn-ui-badge-opacity, 0.7);
+    @apply opacity-[--opacity] p-[--padding] rounded-[--rounded]
+      font-[--font-weight] text-[length:--text-size] text-[color:--text-color] bg-[color:--background-color] flex justify-center items-center content-center;
+  }
+  /* makes sure icons will not make the badges grow vertically; also make size proportional */
+  .gn-ui-badge ng-icon {
+    margin-top: -0.325em;
+    margin-bottom: -0.325em;
+    flex-shrink: 0;
+    vertical-align: middle;
+    font-size: 1.1em;
+    width: 1em;
+    height: 1em;
+  }
+
+  /* TODO: replace by gn-ui-badge class above */
+  .badge-btn {
+    @apply flex items-center justify-center px-4 py-1 rounded backdrop-blur;
+  }
+
+  /* GENERIC TEXT INPUT (textarea, text field, url input...) */
+  .gn-ui-text-input {
+    --rounded: var(--gn-ui-text-input-rounded, 0.25em);
+    --padding: var(--gn-ui-text-input-padding, 0.6em);
+    --font-size: var(--gn-ui-text-input-font-size, 1em);
+    --border-size: var(--gn-ui-text-input-border-size, 2px);
+    @apply appearance-none border-[length:--border-size] p-[--padding] rounded-[--rounded] w-full transition-colors duration-75
+    text-[length:--font-size] leading-none border-gray-300 text-main placeholder-gray-800
+    focus:outline-none focus:border-main hover:border-main
+    disabled:cursor-not-allowed disabled:border-gray-100 disabled:placeholder-gray-300 disabled:text-gray-700 disabled:bg-white;
+  }
+
+  /* GENERIC CARD */
+  .gn-ui-card {
+    @apply flex flex-row border border-gray-200 rounded-xl p-4 gap-2 w-full;
+  }
+
+  /* TODO: add prefix */
+  .card-icon {
+    @apply text-black group-hover:text-primary-darkest transition-colors;
+  }
+
+  /* makes spinners appear in the right color */
+  mat-spinner circle,
+  mat-progress-spinner circle {
+    stroke: currentColor !important;
+  }
+
+  /* Section title */
+  .gn-ui-section-title {
+    @apply text-title font-medium pt-9 text-[28px];
+  }
+}
+
+html {
+  --mat-typography-font-family: var(--font-family-main);
+}

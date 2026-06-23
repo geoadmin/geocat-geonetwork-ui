@@ -1,0 +1,60 @@
+<div
+  class="bg-white rounded shadow shadow-lg relative h-full w-[400px] overflow-hidden"
+>
+  <div class="p-3 border-b border-gray-300 flex items-center">
+    <ng-icon class="mr-2" name="matLayersOutline"></ng-icon>
+    <span translate>map.layers.list</span>
+  </div>
+  <div class="flex flex-col px-4 divide-y divide-y-gray-50">
+    @for (layer of layers$ | async; track layer; let index = $index) {
+      <div class="flex flex-row py-3">
+        <ng-icon class="-ml-2 mr-2 shrink-0" name="matChevronRight"></ng-icon>
+        <span class="mr-2 grow">{{ layer.label }}</span>
+        <a
+          href
+          class="underline text-sm text-red-700 hover:text-red-900"
+          (click)="deleteLayer(index); $event.preventDefault()"
+        >
+          delete
+        </a>
+      </div>
+    }
+  </div>
+  <gn-ui-expandable-panel-button [titleTemplate]="addLayerTitle">
+    <mat-tab-group animationDuration="200ms" class="h-full">
+      <mat-tab [label]="'map.add.layer.catalog' | translate">
+        <div class="p-3">
+          <gn-ui-add-layer-from-catalog></gn-ui-add-layer-from-catalog>
+        </div>
+      </mat-tab>
+      <mat-tab [label]="'map.add.layer.wms' | translate" bodyClass="h-full">
+        <div class="p-3">
+          <gn-ui-add-layer-from-wms></gn-ui-add-layer-from-wms>
+        </div>
+      </mat-tab>
+      <mat-tab [label]="'map.add.layer.wfs' | translate" bodyClass="h-full">
+        <div class="p-3">
+          <gn-ui-add-layer-from-wfs></gn-ui-add-layer-from-wfs>
+        </div>
+      </mat-tab>
+      <mat-tab [label]="'map.add.layer.ogc.api' | translate" bodyClass="h-full">
+        <div class="p-3">
+          <gn-ui-add-layer-from-ogc-api
+            [ogcUrl]="ogcUrl"
+            (layerAdded)="addLayer($event)"
+          ></gn-ui-add-layer-from-ogc-api>
+        </div>
+      </mat-tab>
+      <mat-tab [label]="'map.add.layer.file' | translate" bodyClass="h-full">
+        <div class="p-3">
+          <gn-ui-add-layer-from-file></gn-ui-add-layer-from-file>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </gn-ui-expandable-panel-button>
+</div>
+
+<ng-template #addLayerTitle>
+  <ng-icon class="mr-4" name="matAddCircleOutlineOutline"> </ng-icon>
+  <span translate>map.add.layer</span>
+</ng-template>

@@ -1,0 +1,101 @@
+<div class="flex flex-row gap-x-4 items-center justify-center md:justify-start">
+  <div>
+    <h3
+      class="inline-block font-title text-xl font-medium text-title"
+      translate
+    >
+      record.metadata.api
+    </h3>
+    <span class="px-3">({{ apiLinksCount$ | async }})</span>
+  </div>
+  @if ((isMobile$ | async) === true && carousel?.pagesCount > 1) {
+    <gn-ui-previous-next-buttons
+      [listComponent]="carousel"
+    ></gn-ui-previous-next-buttons>
+  }
+  @if ((isMobile$ | async) === false && list?.pagesCount > 1) {
+    <gn-ui-previous-next-buttons
+      [listComponent]="list"
+    ></gn-ui-previous-next-buttons>
+  }
+</div>
+@if ((isMobile$ | async) === true) {
+  <gn-ui-carousel
+    (currentStepChange)="updateView()"
+    containerClass="gap-4 pt-5 pb-7"
+    #carousel
+  >
+    @for (link of apiLinks$ | async; track link) {
+      <gn-ui-api-card
+        [title]="link.name"
+        [link]="link"
+        [currentLink]="selectedApiLink"
+        size="S"
+        (openRecordApiForm)="openRecordApiForm($event)"
+      >
+      </gn-ui-api-card>
+    }
+  </gn-ui-carousel>
+}
+@if ((isMobile$ | async) === false) {
+  <gn-ui-block-list #blockList containerClass="gap-4 pt-5 pb-7">
+    @for (link of apiLinks$ | async; track link) {
+      <gn-ui-api-card
+        #block
+        [title]="link.name"
+        [link]="link"
+        [currentLink]="selectedApiLink"
+        [size]="blockList.subComponentSize"
+        (openRecordApiForm)="openRecordApiForm($event)"
+      ></gn-ui-api-card>
+    }
+  </gn-ui-block-list>
+}
+<div
+  class="content transition-all duration-300 w-screen mx-auto -ml-[calc(50vw-50%)] overflow-hidden"
+  [ngClass]="selectedApiLink ? 'ease-in' : 'ease-out'"
+  [style.maxHeight]="maxHeight"
+  [style.opacity]="opacity"
+>
+  <div class="bg-primary/10 py-8">
+    <div class="flex flex-col px-4 gap-8 container-lg lg:mx-auto">
+      <div class="flex flex-wrap justify-between sm:mb-2 ng-star-inserted">
+        @if (selectedApiLink?.accessServiceProtocol) {
+          <p class="text-[21px] text-title font-title" translate>
+            {{
+              selectedApiLink?.accessServiceProtocol === 'GPFDL'
+                ? 'record.metadata.api.form.title.gpf'
+                : 'record.metadata.api.form.title'
+            }}
+          </p>
+        }
+        <button
+          type="button"
+          class="flex items-center gap-0.5 text-primary group"
+          (click)="closeRecordApiForm()"
+        >
+          <div
+            class="text-sm font-medium opacity-50 group-hover:opacity-100 uppercase tracking-wide mt-0.5"
+            translate
+          >
+            record.metadata.api.form.closeButton
+          </div>
+          <ng-icon
+            class="!w-5 !h-5 text-xl font-bold !flex items-center"
+            name="matCloseOutline"
+          >
+          </ng-icon>
+        </button>
+      </div>
+
+      @if (selectedApiLink?.accessServiceProtocol === 'GPFDL') {
+        <gn-ui-gpf-api-dl [apiLink]="selectedApiLink"></gn-ui-gpf-api-dl>
+      }
+      @if (selectedApiLink?.accessServiceProtocol !== 'GPFDL') {
+        <gn-ui-record-api-form
+          [apiLink]="selectedApiLink"
+        ></gn-ui-record-api-form>
+      }
+    </div>
+  </div>
+</div>

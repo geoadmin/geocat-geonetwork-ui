@@ -1,0 +1,14 @@
+<gn-ui-text-area
+  [hidden]="preview"
+  [placeholder]="placeholder"
+  [value]="textContent"
+  [extraClass]="textAreaExtraClass + ' !leading-normal'"
+  (valueChange)="textContentChangedHandler($event)"
+></gn-ui-text-area>
+
+<div
+  class="gn-ui-text-input border-gray-100 hover:border-gray-100"
+  [hidden]="!preview"
+>
+  <gn-ui-markdown-parser [textContent]="textContent"></gn-ui-markdown-parser>
+</div>

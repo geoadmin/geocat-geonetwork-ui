@@ -1,0 +1,135 @@
+import { TestBed } from '@angular/core/testing'
+import { DateService } from './date.service'
+import { TranslateService } from '@ngx-translate/core'
+
+describe('DateService', () => {
+  let service: DateService
+  let translateService: TranslateService
+
+  beforeEach(() => {
+    // Create a simple stub for TranslateService with currentLang set to 'en-US'
+    const translateServiceStub = { currentLang: 'en-US' }
+
+    TestBed.configureTestingModule({
+      providers: [
+        DateService,
+        { provide: TranslateService, useValue: translateServiceStub },
+      ],
+    })
+    service = TestBed.inject(DateService)
+    translateService = TestBed.inject(TranslateService)
+  })
+
+  describe('formatDate', () => {
+    it('should format a valid Date object with default options', () => {
+      const date = new Date('2020-01-01T00:00:00Z')
+      const expected = date.toLocaleDateString('en-US')
+      const result = service.formatDate(date)
+      expect(result).toEqual(expected)
+    })
+
+    it('should format a valid Date object with provided options', () => {
+      const date = new Date('2020-01-01T00:00:00Z')
+      const options: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }
+      const expected = date.toLocaleDateString('en-US', options)
+      const result = service.formatDate(date, options)
+      expect(result).toEqual(expected)
+    })
+
+    it('should format a valid date string with default options', () => {
+      const dateString = '2020-01-01T00:00:00Z'
+      const date = new Date(dateString)
+      const expected = date.toLocaleDateString('en-US')
+      const result = service.formatDate(dateString)
+      expect(result).toEqual(expected)
+    })
+
+    it('should throw an error for an invalid date string', () => {
+      const invalidDate = 'invalid-date'
+      expect(() => service.formatDate(invalidDate)).toThrowError(
+        'Invalid date string'
+      )
+    })
+  })
+
+  describe('formatDateTime', () => {
+    it('should format a valid Date object with default options', () => {
+      const date = new Date('2020-01-01T12:34:56Z')
+      const expected = date.toLocaleString('en-US')
+      const result = service.formatDateTime(date)
+      expect(result).toEqual(expected)
+    })
+
+    it('should format a valid Date object with provided options', () => {
+      const date = new Date('2020-01-01T12:34:56Z')
+      const options: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+      }
+      const expected = date.toLocaleString('en-US', options)
+      const result = service.formatDateTime(date, options)
+      expect(result).toEqual(expected)
+    })
+
+    it('should format a valid date string with default options', () => {
+      const dateString = '2020-01-01T12:34:56Z'
+      const date = new Date(dateString)
+      const expected = date.toLocaleString('en-US')
+      const result = service.formatDateTime(dateString)
+      expect(result).toEqual(expected)
+    })
+
+    it('should throw an error for an invalid date string', () => {
+      const invalidDate = 'invalid-date'
+      expect(() => service.formatDateTime(invalidDate)).toThrowError(
+        'Invalid date string'
+      )
+    })
+  })
+
+  describe('formatRelativeDateTime', () => {
+    it('should format a date 10 days in the future', async () => {
+      const now = new Date()
+      const futureDate = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000)
+      const result = await service.formatRelativeDateTime(futureDate)
+      expect(result).toBe('in 10 days')
+    })
+
+    it('should format a date 5 years in the past', async () => {
+      const now = new Date()
+      const pastDate = new Date(now.getTime() - 5 * 365 * 24 * 60 * 60 * 1000)
+      const result = await service.formatRelativeDateTime(pastDate)
+      expect(result).toBe('almost 5 years ago')
+    })
+
+    it('should format a valid date string', async () => {
+      const now = new Date()
+      const futureDate = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
+      const dateString = futureDate.toISOString()
+      const result = await service.formatRelativeDateTime(dateString)
+      expect(result).toBe('in 3 days')
+    })
+
+    it('should throw an error for an invalid date string', async () => {
+      const invalidDate = 'invalid-date'
+      await expect(
+        service.formatRelativeDateTime(invalidDate)
+      ).rejects.toThrowError('Invalid date string')
+    })
+
+    it('should use the correct locale from TranslateService', async () => {
+      translateService.currentLang = 'fr'
+      const now = new Date()
+      const futureDate = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000)
+      const result = await service.formatRelativeDateTime(futureDate)
+      expect(result).toBe('dans 2 jours')
+    })
+  })
+})

@@ -1,0 +1,28 @@
+{
+  "name": "feature-router",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/feature/router/src",
+  "prefix": "geonetwork-ui",
+  "tags": ["type:feature"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/feature/router"],
+      "options": {
+        "jestConfig": "libs/feature/router/jest.config.ts",
+        "tsConfig": "libs/feature/router/tsconfig.spec.json"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": [
+          "libs/feature/router/src/**/*.ts",
+          "libs/feature/router/src/**/*.html"
+        ]
+      },
+      "outputs": ["{options.outputFile}"]
+    }
+  }
+}

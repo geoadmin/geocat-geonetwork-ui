@@ -1,0 +1,13 @@
+<div class="flex flex-col gap-2">
+  <gn-ui-image-input
+    [maxSizeMB]="MAX_UPLOAD_SIZE_MB"
+    [previewUrl]="firstOverview.url"
+    [altText]="firstOverview.description"
+    (fileChange)="handleFileChange($event)"
+    (urlChange)="handleUrlChange($event)"
+    (altTextChange)="handleAltTextChange($event)"
+    (delete)="handleDelete()"
+    [uploadProgress]="uploadProgress"
+    (uploadCancel)="handleUploadCancel()"
+  ></gn-ui-image-input>
+</div>
