@@ -1,0 +1,117 @@
+name: Deploy
+run-name: 🚀 Deploy to GitHub Pages for ${{ github.event_name == 'issue_comment' && 'PR' || '🌱' }} ${{github.event_name == 'issue_comment' && github.event.issue.number || github.ref_name}}
+
+env:
+  NODE_VERSION: 20
+
+# This workflow runs whenever the "deploy affected apps" checkbox is checked (for PR)
+# or on every push to main
+on:
+  push:
+    branches:
+      - geocat
+  issue_comment:
+    types:
+      - edited
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    if: github.event_name != 'issue_comment' || github.event.issue.pull_request
+    name: Check whether a deploy was requested on a PR
+    runs-on: ubuntu-latest
+    outputs:
+      shouldRun: ${{ github.event_name != 'issue_comment' || (contains(github.event.changes.body.from, '- [ ] 🚀 Build and deploy storybook and demo on GitHub Pages') && contains(github.event.comment.body, '- [x] 🚀 Build and deploy storybook and demo on GitHub Pages')) || '' }}
+      ref: ${{ github.event_name == 'issue_comment' && steps.comment-branch.outputs.head_ref || '' }}
+
+    steps:
+      - uses: xt0rted/pull-request-comment-branch@v1
+        if: github.event_name == 'issue_comment'
+        id: comment-branch
+
+  gh-pages:
+    needs: checks
+    if: github.event_name != 'issue_comment' || needs.checks.outputs.shouldRun
+    name: Deploy docs, apps, Storybook to GitHub Pages
+    runs-on: ubuntu-latest
+    env:
+      BRANCH_NAME: ${{needs.checks.outputs.ref || 'geocat'}}
+
+    steps:
+      - name: Dump GitHub event
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github.event) }}
+        run: echo "$GITHUB_CONTEXT"
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ needs.checks.outputs.ref }}
+
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: add initial comment
+        uses: thollander/actions-comment-pull-request@v2
+        if: github.event_name == 'issue_comment'
+        with:
+          message: 'GitHub Pages links:
+
+
+            🚧 building in progress... 🚧'
+          comment_tag: github-links
+          pr_number: ${{ github.event.issue.number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install
+        run: npm ci
+
+      - name: Build storybook
+        run: npm run build:storybook
+
+      - name: Build metadata-converter app
+        if: github.event_name != 'issue_comment' # This is not done on PR, only on main branch
+        run: npx nx build metadata-converter --prod --base-href=./
+
+        # This will move the artifacts to dist/dist so that it works for the docs website!
+      - name: Build Web Components artifacts
+        run: npm run build:webcomponents && rm -rf dist/{webcomponents,standalone-search}
+
+      - name: Build docs & move all artifacts to dist folder
+        run: |
+          npm run docs:build -- --base=/geonetwork-ui/${{env.BRANCH_NAME}}/docs/
+          mkdir -p dist/docs && mv docs/.vitepress/dist/* dist/docs
+          mkdir -p dist/dist && mv dist/gn-*.js dist/dist
+
+      - name: Add redirection pages for old Web Components link
+        run: |
+          mkdir -p dist/demo/webcomponents
+          echo '<html><head><meta http-equiv="refresh" content="0; url=../docs/webcomponents/"></head></html>' > dist/demo/index.html
+          echo '<html><head><meta http-equiv="refresh" content="0; url=../../docs/webcomponents/"></head></html>' > dist/demo/webcomponents/index.html
+
+      - name: Deploy to directory ${{ env.BRANCH_NAME }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          npx gh-pages --dist dist/ --dest ${{env.BRANCH_NAME}} --no-history --repo "https://${GITHUB_ACTOR}:${{secrets.GITHUB_TOKEN}}@github.com/${GITHUB_REPOSITORY}.git"
+
+      - name: update PR comment
+        uses: thollander/actions-comment-pull-request@v2
+        if: github.event_name == 'issue_comment'
+        with:
+          message: 'GitHub Pages links:
+
+            * (Documentation)[https://geonetwork.github.io/geonetwork-ui/${{env.BRANCH_NAME}}/docs/]
+
+            * (Web components demo)[https://geonetwork.github.io/geonetwork-ui/${{env.BRANCH_NAME}}/docs/webcomponents/]
+
+            * (UI components storybook)[https://geonetwork.github.io/geonetwork-ui/${{env.BRANCH_NAME}}/storybook/demo/]'
+          comment_tag: github-links
+          pr_number: ${{ github.event.issue.number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

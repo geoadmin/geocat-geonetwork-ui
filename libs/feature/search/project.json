@@ -1,0 +1,28 @@
+{
+  "name": "feature-search",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/feature/search/src",
+  "prefix": "gn-ui",
+  "tags": ["type:feature"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/feature/search"],
+      "options": {
+        "jestConfig": "libs/feature/search/jest.config.ts",
+        "tsConfig": "libs/feature/search/tsconfig.spec.json"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": [
+          "libs/feature/search/src/**/*.ts",
+          "libs/feature/search/src/**/*.html"
+        ]
+      },
+      "outputs": ["{options.outputFile}"]
+    }
+  }
+}

@@ -1,0 +1,12 @@
+@if (avatarUrl) {
+  <img
+    class="rounded-full object-cover"
+    [src]="avatarUrl"
+    (error)="hideImage()"
+  />
+}
+@if (!avatarUrl) {
+  <div
+    class="w-full h-full rounded-full bg-gradient-to-tr from-primary to-slate-200"
+  ></div>
+}

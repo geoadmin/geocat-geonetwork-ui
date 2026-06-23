@@ -1,0 +1,28 @@
+{
+  "name": "feature-dataviz",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/feature/dataviz/src",
+  "prefix": "gn-ui",
+  "tags": ["type:feature"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/feature/dataviz"],
+      "options": {
+        "jestConfig": "libs/feature/dataviz/jest.config.ts",
+        "tsConfig": "libs/feature/dataviz/tsconfig.spec.json"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": [
+          "libs/feature/dataviz/src/**/*.ts",
+          "libs/feature/dataviz/src/**/*.html"
+        ]
+      },
+      "outputs": ["{options.outputFile}"]
+    }
+  }
+}

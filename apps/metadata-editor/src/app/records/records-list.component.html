@@ -1,0 +1,13 @@
+<div
+  class="shadow-md shadow-gray-300 border-[1px] border-gray-200 overflow-hidden rounded bg-white grow mx-[32px] my-[16px] text-sm"
+>
+  <gn-ui-results-table-container
+    (recordClick)="editRecord($event)"
+    (duplicateRecord)="duplicateRecord($event)"
+    [isDuplicating]="isDuplicating"
+  ></gn-ui-results-table-container>
+
+  <div class="px-5 py-5 flex justify-center gap-8 items-baseline">
+    <gn-ui-pagination-buttons [listComponent]="this"></gn-ui-pagination-buttons>
+  </div>
+</div>

@@ -1,0 +1,28 @@
+{
+  "name": "feature-notifications",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/feature/notifications/src",
+  "prefix": "gn-ui",
+  "tags": ["type:feature"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/feature/notifications"],
+      "options": {
+        "jestConfig": "libs/feature/notifications/jest.config.ts",
+        "tsConfig": "libs/feature/notifications/tsconfig.spec.json"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": [
+          "libs/feature/notifications/src/**/*.ts",
+          "libs/feature/notifications/src/**/*.html"
+        ]
+      },
+      "outputs": ["{options.outputFile}"]
+    }
+  }
+}

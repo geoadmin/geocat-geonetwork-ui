@@ -1,0 +1,111 @@
+import { SortByEnum } from '@geonetwork-ui/common/domain/model/search'
+import { BehaviorSubject } from 'rxjs'
+import { SearchService } from './search.service'
+import { LocationBbox } from '../../location-search/location-search-result.model'
+import { TestBed } from '@angular/core/testing'
+import { SearchFacade } from '../../state/search.facade'
+
+const state = { Org: 'mel' }
+const facadeMock = {
+  setFilters: jest.fn(),
+  setSortBy: jest.fn(),
+  searchFilters$: new BehaviorSubject(state),
+  setLocationFilter: jest.fn(),
+  clearLocationFilter: jest.fn(),
+}
+
+describe('SearchService', () => {
+  let service: SearchService
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        SearchService,
+        { provide: SearchFacade, useValue: facadeMock },
+      ],
+    })
+    service = TestBed.inject(SearchService)
+  })
+
+  it('should be created', () => {
+    expect(service).toBeTruthy()
+  })
+
+  describe('#setSearch', () => {
+    it('dispatch setFilter', () => {
+      const p = {
+        any: 'any',
+      }
+      service.setFilters(p)
+      expect(facadeMock.setFilters).toHaveBeenCalledWith(p)
+    })
+  })
+
+  describe('#setSortBy', () => {
+    it('dispatch sortBy', () => {
+      service.setSortBy(SortByEnum.RELEVANCY)
+      expect(facadeMock.setSortBy).toHaveBeenCalledWith(SortByEnum.RELEVANCY)
+    })
+  })
+
+  describe('#setSortAndFilters', () => {
+    const filters = {
+      any: 'any',
+    }
+    beforeEach(() => {
+      service.setSortAndFilters(filters, SortByEnum.RELEVANCY)
+    })
+    it('dispatch sortBy', () => {
+      expect(facadeMock.setSortBy).toHaveBeenCalledWith(SortByEnum.RELEVANCY)
+    })
+    it('dispatch setSearchFilters', () => {
+      expect(facadeMock.setFilters).toHaveBeenCalledWith(filters)
+    })
+  })
+
+  describe('#updateSearch', () => {
+    describe('#updateSearch', () => {
+      beforeEach(() => {
+        const params = {
+          any: 'any',
+        }
+        service.updateFilters(params)
+      })
+      it('dispatch setFilter with merged params', () => {
+        expect(facadeMock.setFilters).toHaveBeenCalledWith({
+          any: 'any',
+          Org: 'mel',
+        })
+      })
+    })
+  })
+
+  describe('#setLocationFilter', () => {
+    describe('#setLocationFilter', () => {
+      beforeEach(() => {
+        const location: LocationBbox = {
+          label: 'Great Location',
+          bbox: [1, 2, 3, 4],
+        }
+        service.setLocationFilter(location)
+      })
+      it('dispatch setLocationFilter with merged params', () => {
+        expect(facadeMock.setLocationFilter).toHaveBeenCalledWith(
+          'Great Location',
+          [1, 2, 3, 4]
+        )
+      })
+    })
+  })
+
+  describe('#clearLocationFilter', () => {
+    describe('#clearLocationFilter', () => {
+      beforeEach(() => {
+        service.clearLocationFilter()
+      })
+      it('dispatch clearLocationFilter without params', () => {
+        expect(facadeMock.clearLocationFilter).toHaveBeenCalledWith()
+      })
+    })
+  })
+})

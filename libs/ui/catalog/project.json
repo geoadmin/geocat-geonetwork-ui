@@ -1,0 +1,28 @@
+{
+  "name": "ui-catalog",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/ui/catalog/src",
+  "prefix": "gn-ui",
+  "tags": ["type:ui"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/ui/catalog"],
+      "options": {
+        "jestConfig": "libs/ui/catalog/jest.config.ts",
+        "tsConfig": "libs/ui/catalog/tsconfig.spec.json"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": [
+          "libs/ui/catalog/src/**/*.ts",
+          "libs/ui/catalog/src/**/*.html"
+        ]
+      },
+      "outputs": ["{options.outputFile}"]
+    }
+  }
+}

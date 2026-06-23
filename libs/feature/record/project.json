@@ -1,0 +1,28 @@
+{
+  "name": "feature-record",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/feature/record/src",
+  "prefix": "gn-ui",
+  "tags": ["type:feature"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/feature/record"],
+      "options": {
+        "jestConfig": "libs/feature/record/jest.config.ts",
+        "tsConfig": "libs/feature/record/tsconfig.spec.json"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": [
+          "libs/feature/record/src/**/*.ts",
+          "libs/feature/record/src/**/*.html"
+        ]
+      },
+      "outputs": ["{options.outputFile}"]
+    }
+  }
+}

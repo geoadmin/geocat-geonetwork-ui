@@ -1,0 +1,22 @@
+/* Use a standard link style for description, since it can contain html */
+.md-description ::ng-deep a {
+  @apply underline text-blue-600 hover:text-blue-800;
+}
+
+.info-grid > :nth-last-child(n + 3) {
+  padding-bottom: 10px;
+  @apply border-b border-gray-300;
+}
+
+:host ::ng-deep gn-ui-copy-text-button button ng-icon {
+  transform: scale(0.8);
+}
+
+:host {
+  --gn-ui-badge-background-color: var(--color-primary-white);
+  --gn-ui-badge-text-color: var(--color-primary-darkest);
+}
+
+:host .metadata-info-keywords ::ng-deep gn-ui-badge:hover {
+  --gn-ui-badge-text-color: white;
+}

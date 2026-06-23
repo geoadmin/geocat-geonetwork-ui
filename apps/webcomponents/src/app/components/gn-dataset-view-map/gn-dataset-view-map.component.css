@@ -1,0 +1,6 @@
+@import '../../../styles.css';
+
+:host {
+  display: block;
+  height: 500px;
+}

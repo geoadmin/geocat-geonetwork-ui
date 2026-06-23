@@ -1,0 +1,160 @@
+import {
+  CUSTOM_ELEMENTS_SCHEMA,
+  DoBootstrap,
+  importProvidersFrom,
+  inject,
+  Injector,
+  NgModule,
+} from '@angular/core'
+import { createCustomElement } from '@angular/elements'
+import {
+  ChartViewComponent,
+  TableViewComponent,
+} from '@geonetwork-ui/feature/dataviz'
+import {
+  FeatureMapModule,
+  LayersPanelComponent,
+  MapStateContainerComponent,
+} from '@geonetwork-ui/feature/map'
+import {
+  FeatureRecordModule,
+  MapViewComponent,
+} from '@geonetwork-ui/feature/record'
+import {
+  FacetsContainerComponent,
+  FeatureSearchModule,
+  FuzzySearchComponent,
+  RecordsMetricsComponent,
+  ResultsListContainerComponent,
+} from '@geonetwork-ui/feature/search'
+import { FigureComponent } from '@geonetwork-ui/ui/dataviz'
+import { ButtonComponent } from '@geonetwork-ui/ui/inputs'
+import { GEONETWORK_UI_VERSION, PROXY_PATH } from '@geonetwork-ui/util/shared'
+import { EffectsModule } from '@ngrx/effects'
+import { StoreModule } from '@ngrx/store'
+import { StoreDevtoolsModule } from '@ngrx/store-devtools'
+import { BaseComponent } from './components/base.component'
+import { GnAggregatedRecordsComponent } from './components/gn-aggregated-records/gn-aggregated-records.component'
+import { GnDatahubComponent } from './components/gn-datahub/gn-datahub.component'
+import { GnDatasetViewChartComponent } from './components/gn-dataset-view-chart/gn-dataset-view-chart.component'
+import { GnDatasetViewMapComponent } from './components/gn-dataset-view-map/gn-dataset-view-map.component'
+import { GnDatasetViewTableComponent } from './components/gn-dataset-view-table/gn-dataset-view-table.component'
+import { GnFacetsComponent } from './components/gn-facets/gn-facets.component'
+import { GnFigureDatasetsComponent } from './components/gn-figure-datasets/gn-figure-datasets.component'
+import { GnMapViewerComponent } from './components/gn-map-viewer/gn-map-viewer.component'
+import { GnResultsListComponent } from './components/gn-results-list/gn-results-list.component'
+import { GnSearchInputComponent } from './components/gn-search-input/gn-search-input.component'
+import { standaloneConfigurationObject } from './configuration'
+import { StandaloneSearchModule } from './standalone-search.module'
+import { BrowserModule } from '@angular/platform-browser'
+import { HashLocationStrategy, LocationStrategy } from '@angular/common'
+import { RouterModule, TitleStrategy } from '@angular/router'
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import { DATAHUB_ROUTER_PROVIDERS } from '@geonetwork-ui/apps/datahub/app.providers.ts'
+import { NoopTitleStrategy } from './noop-title-strategy.service'
+
+const CUSTOM_ELEMENTS: [
+  new (...args) => BaseComponent | GnDatahubComponent,
+  string,
+][] = [
+  [GnFacetsComponent, 'gn-facets'],
+  [GnResultsListComponent, 'gn-results-list'],
+  [GnAggregatedRecordsComponent, 'gn-aggregated-records'],
+  [GnSearchInputComponent, 'gn-search-input'],
+  [GnDatasetViewTableComponent, 'gn-dataset-view-table'],
+  [GnDatasetViewChartComponent, 'gn-dataset-view-chart'],
+  [GnMapViewerComponent, 'gn-map-viewer'],
+  [GnFigureDatasetsComponent, 'gn-figure-datasets'],
+  [GnDatasetViewMapComponent, 'gn-dataset-view-map'],
+  [GnDatahubComponent, 'gn-datahub'],
+]
+
+@NgModule({
+  declarations: [
+    BaseComponent,
+    GnFacetsComponent,
+    GnResultsListComponent,
+    GnAggregatedRecordsComponent,
+    GnSearchInputComponent,
+    GnDatasetViewTableComponent,
+    GnDatasetViewChartComponent,
+    GnMapViewerComponent,
+    GnFigureDatasetsComponent,
+    GnDatasetViewMapComponent,
+  ],
+  imports: [
+    BrowserModule,
+    FeatureSearchModule,
+    FeatureRecordModule,
+    FeatureMapModule,
+    MapStateContainerComponent,
+    LayersPanelComponent,
+    TableViewComponent,
+    ChartViewComponent,
+    MapViewComponent,
+    ButtonComponent,
+    FigureComponent,
+    FuzzySearchComponent,
+    RecordsMetricsComponent,
+    ResultsListContainerComponent,
+    FacetsContainerComponent,
+    RouterModule.forRoot([], {
+      initialNavigation: 'disabled', // initial navigation is done after config is loaded
+      scrollPositionRestoration: 'disabled',
+    }),
+    StoreModule.forRoot(
+      {},
+      {
+        runtimeChecks: {
+          strictStateImmutability: false,
+          strictActionImmutability: false,
+        },
+      }
+    ),
+  ],
+  providers: [
+    importProvidersFrom(
+      StandaloneSearchModule,
+      StoreModule.forRoot({}),
+      StoreDevtoolsModule.instrument({ connectInZone: true }),
+      EffectsModule.forRoot()
+    ),
+    {
+      provide: PROXY_PATH,
+      useFactory: standaloneConfigurationObject.proxyPathFactory,
+    },
+    // { provide: LocationStrategy, useClass: CustomLocationStrategy }, // TODO: offer this if we don't want to see hashes in the url
+    { provide: LocationStrategy, useClass: HashLocationStrategy },
+    DATAHUB_ROUTER_PROVIDERS,
+    {
+      provide: TitleStrategy,
+      useClass: NoopTitleStrategy,
+    },
+  ],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+})
+export class WebcomponentsModule implements DoBootstrap {
+  private injector = inject(Injector)
+
+  constructor() {
+    const injector = this.injector
+
+    CUSTOM_ELEMENTS.forEach((ceDefinition) => {
+      const angularComponent = ceDefinition[0]
+      const ceTagName = ceDefinition[1]
+
+      const customElement = createCustomElement(angularComponent, {
+        injector,
+      })
+      if (!customElements.get(ceTagName)) {
+        customElements.define(ceTagName, customElement)
+      }
+    })
+  }
+
+  ngDoBootstrap() {
+    console.log(
+      `[geonetwork-ui] GeoNetwork-UI Web Components v${GEONETWORK_UI_VERSION} loaded`
+    )
+  }
+}

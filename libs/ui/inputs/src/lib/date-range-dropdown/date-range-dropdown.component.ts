@@ -1,0 +1,64 @@
+import {
+  AfterViewChecked,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  Output,
+  ViewChild,
+  inject,
+} from '@angular/core'
+
+import { MatNativeDateModule } from '@angular/material/core'
+import { MatDatepickerModule } from '@angular/material/datepicker'
+import { ButtonComponent } from '../button/button.component'
+import { OverlayContainer } from '@angular/cdk/overlay'
+import { NgIconComponent, provideIcons } from '@ng-icons/core'
+import { matExpandLess, matExpandMore } from '@ng-icons/material-icons/baseline'
+
+@Component({
+  selector: 'gn-ui-date-range-dropdown',
+  standalone: true,
+  imports: [
+    NgIconComponent,
+    MatNativeDateModule,
+    MatDatepickerModule,
+    ButtonComponent,
+  ],
+  providers: [
+    provideIcons({
+      matExpandMore,
+      matExpandLess,
+    }),
+  ],
+  templateUrl: './date-range-dropdown.component.html',
+  styleUrls: ['./date-range-dropdown.component.css'],
+})
+export class DateRangeDropdownComponent implements AfterViewChecked {
+  private overlayContainer = inject(OverlayContainer)
+  private cdr = inject(ChangeDetectorRef)
+
+  @Input() title: string
+  @Input() startDate: Date
+  @Input() endDate: Date
+  @Output() startDateChange = new EventEmitter<Date>()
+  @Output() endDateChange = new EventEmitter<Date>()
+
+  @ViewChild('picker') picker: ElementRef
+  isPickerDisplayed = false
+
+  ngAfterViewChecked() {
+    this.checkPickerOverlay()
+  }
+
+  checkPickerOverlay() {
+    const overlayContainerElement = this.overlayContainer.getContainerElement()
+    setTimeout(() => {
+      this.isPickerDisplayed =
+        overlayContainerElement.querySelector('.mat-datepicker-content') !==
+        null
+      this.cdr.detectChanges()
+    }, 200) // FIXME: find a better way to deal with animation delay
+  }
+}

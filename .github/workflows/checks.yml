@@ -1,0 +1,411 @@
+name: Checks
+run-name: 🩺 Quality assurance checks on ${{ github.event_name == 'pull_request' && 'PR' || '🌱' }} ${{ github.event_name == 'pull_request' && github.event.number || github.ref_name }}
+
+env:
+  NODE_VERSION: 20
+  TEST_HIDE_CONSOLE: true
+
+# This workflow runs for Pull Requests which are not draft,
+# as well as commits going to the default branch
+on:
+  push:
+    branches:
+      - geocat
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+
+# Only allow concurrent checks on the main branch to keep history
+# on QA checks
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_name != 'geocat' }}
+
+jobs:
+  format-lint-test:
+    if: github.event.pull_request.draft == false
+    name: Format check, lint, unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Derive appropriate SHAs for base and head for `nx affected` commands
+        uses: nrwl/nx-set-shas@v4
+        with:
+          main-branch-name: 'geocat'
+          fallback-sha: e59ec426e057c349b36441c4f6b1b4f64cef9912
+
+      - id: npm-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/Cypress
+            .nx
+          key: ${{ runner.os }}-npm-nx-cypress-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-nx-cypress-${{ hashFiles('**/package-lock.json') }}
+            ${{ runner.os }}-npm-nx-cypress-
+
+      - run: npm ci
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+
+      - run: npx nx format:check
+      - run: npx nx affected -t lint --parallel=3
+      - run: npx nx affected -t test --parallel=3 --configuration=ci --ci --codeCoverage --coverageReporters=lcov
+
+  #    - name: Coveralls
+  #      uses: coverallsapp/github-action@v2
+  #      with:
+  #        allow-empty: true
+
+  #      - name: Archive Code Coverage Results (on main)
+  #        if: github.event_name != 'pull_request'
+  #        uses: actions/upload-artifact@v2
+  #        with:
+  #          name: code-coverage-report
+  #          path: ./coverage/**/coverage-summary.json
+  #          if-no-files-found: error
+  #
+  #      - name: Create Code Coverage Badge (on PR)
+  #        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+  #        uses: dkhunt27/nx-code-coverage@v1
+  #        with:
+  #          github-token: ${{ secrets.GITHUB_TOKEN }}
+  #          coverage-folder: ./coverage
+  #          coverage-base-folder: ./coverage-base
+  #          gist-token: ${{ secrets.COVERAGE_GIST_TOKEN }}
+  #          gist-id: c759fcfd4e71c8853beedbe1785fc081
+  #          color: green
+  #          named-logo: jest
+  #          no-coverage-ran: false
+
+  build-affected:
+    if: github.event.pull_request.draft == false
+    name: Attempt to build affected apps
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Derive appropriate SHAs for base and head for `nx affected` commands
+        uses: nrwl/nx-set-shas@v4
+        with:
+          main-branch-name: 'geocat'
+          fallback-sha: e59ec426e057c349b36441c4f6b1b4f64cef9912
+
+      - id: npm-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/Cypress
+            .nx
+          key: ${{ runner.os }}-npm-nx-cypress-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-nx-cypress-${{ hashFiles('**/package-lock.json') }}
+            ${{ runner.os }}-npm-nx-cypress-
+
+      - run: npm ci
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+
+      - run: npx nx affected -t build --parallel=3
+
+  compute-affected:
+    name: Compute affected apps and libs
+    runs-on: ubuntu-latest
+    outputs:
+      affected_apps: ${{ steps.compute-affected-result.outputs.affected_apps }}
+      affected_libs: ${{ steps.compute-affected-result.outputs.affected_libs }}
+      skip_datahub: ${{ steps.compute-affected-result.outputs.skip_datahub }}
+      skip_editor: ${{ steps.compute-affected-result.outputs.skip_editor }}
+      skip_all_e2e: ${{ steps.compute-affected-result.outputs.skip_all_e2e }}
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Derive appropriate SHAs for base and head for `nx affected` commands
+        uses: nrwl/nx-set-shas@v4
+        with:
+          main-branch-name: 'geocat'
+          fallback-sha: e59ec426e057c349b36441c4f6b1b4f64cef9912
+
+      - id: npm-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/Cypress
+            .nx
+          key: ${{ runner.os }}-npm-nx-cypress-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-nx-cypress-${{ hashFiles('**/package-lock.json') }}
+            ${{ runner.os }}-npm-nx-cypress-
+
+      - run: npm ci
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+
+      - name: Compute affected libs & apps
+        id: compute-affected-result
+        run: |
+          AFFECTED_APPS=$(npx nx show projects --affected --type=app | tr '\n' ',' | sed 's/,$//')
+          AFFECTED_LIBS=$(npx nx show projects --affected --type=lib | tr '\n' ',' | sed 's/,$//')
+          echo "affected_apps=${AFFECTED_APPS}" >> "$GITHUB_OUTPUT"
+          echo "affected_libs=${AFFECTED_LIBS}" >> "$GITHUB_OUTPUT"
+          echo "skip_datahub=[\"$([[ $AFFECTED_APPS =~ "datahub" ]] && echo "false" || echo "true")\"]" >> "$GITHUB_OUTPUT"
+          echo "skip_editor=[\"$([[ $AFFECTED_APPS =~ "metadata-editor" ]] && echo "false" || echo "true")\"]" >> "$GITHUB_OUTPUT"
+          echo "skip_all_e2e=$( [[ -z $AFFECTED_APPS ]] && echo "true" || echo "false" )" >> "$GITHUB_OUTPUT"
+
+  affected-recap:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    name: Print affected libs and apps
+    runs-on: ubuntu-latest
+    needs:
+      - compute-affected
+
+    steps:
+      - name: add PR comment
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            **Affected libs:**
+            ${{ needs.compute-affected.outputs.AFFECTED_LIBS }}
+
+            **Affected apps:**
+            ${{ needs.compute-affected.outputs.AFFECTED_APPS }}
+
+            - [ ] 🚀 Build and deploy storybook and demo on GitHub Pages
+            - [ ] 📦 Build and push affected docker images
+          comment_tag: build-options
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  e2e-run:
+    name: E2E tests / ${{ matrix.app }} / GN v${{ matrix.geonetwork_versions.gn }}
+    runs-on: ubuntu-latest
+    needs:
+      - compute-affected
+    #if: ${{ needs.compute-affected.outputs.skip_all_e2e == 'false' }}
+    if: false # skip for geocat
+    strategy:
+      fail-fast: false
+      matrix:
+        geonetwork_versions:
+          - gn: 4.2.2
+            es: 7.17.15
+          - gn: 4.2.8
+            es: 7.17.15
+          - gn: 4.2.14
+            es: 7.17.15
+          - gn: 4.4.0
+            es: 7.17.15
+          - gn: 4.4.8
+            es: 8.14.3
+            es_above_8: true
+        app: [datahub, metadata-editor]
+        skip_datahub: ${{ fromJSON(needs.compute-affected.outputs.skip_datahub) }}
+        skip_editor: ${{ fromJSON(needs.compute-affected.outputs.skip_editor) }}
+        exclude:
+          - geonetwork_versions: # metadata-editor requires v4.2.5+
+              gn: 4.2.2
+            app: metadata-editor
+          - skip_datahub: 'true' # skip datahub if not affected
+            app: datahub
+          - skip_editor: 'true' # skip metadata-editor if not affected
+            app: metadata-editor
+
+          # FIXME: the datahub tests do not passe on these version; this might be a sign of actual bugs
+          - geonetwork_versions:
+              gn: 4.2.14
+            app: datahub
+          - geonetwork_versions:
+              gn: 4.4.8
+            app: datahub
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Derive appropriate SHAs for base and head for `nx affected` commands
+        uses: nrwl/nx-set-shas@v4
+        with:
+          main-branch-name: 'geocat'
+          fallback-sha: e59ec426e057c349b36441c4f6b1b4f64cef9912
+
+      - id: npm-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/Cypress
+            .nx
+          key: ${{ runner.os }}-npm-nx-cypress-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-nx-cypress-${{ hashFiles('**/package-lock.json') }}
+            ${{ runner.os }}-npm-nx-cypress-
+
+      - run: npm ci
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+
+      - name: Create pipeline docker image
+        working-directory: tools
+        run: docker build . -f pipelines/Dockerfile -t geonetwork/geonetwork-ui-tools-pipelines:latest
+
+      - name: Start up backend support services
+        env:
+          GEONETWORK_VERSION: ${{ matrix.geonetwork_versions.gn }}
+          ELASTICSEARCH_VERSION: ${{ matrix.geonetwork_versions.es }}
+          # this is because the xpack.security. params should only be applied to ES v8 and above; using an uppercase prefix makes the params ignored
+          ES_XPACK_PARAMETER_PREFIX: ${{ !matrix.geonetwork_versions.es_above_8 && 'IGNORE_' || '' }}
+        working-directory: support-services
+        run: docker compose up --quiet-pull init
+
+      - name: Run e2e tests for ${{ matrix.app }} (if affected)
+        env:
+          APP: ${{ matrix.app }}
+        run: npx nx e2e "$APP-e2e"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        id: upload-screenshots
+        with:
+          name: cypress-screenshots-app-${{ matrix.app }}-gn-${{ matrix.geonetwork_versions.gn }}
+          path: |
+            apps/datahub-e2e/cypress/screenshots/**/*
+            apps/metadata-editor-e2e/cypress/screenshots/**/*
+
+      - uses: thollander/actions-comment-pull-request@v2
+        if: always() && github.event_name == 'pull_request' && steps.upload-screenshots.outputs.artifact-url
+        with:
+          message: '📷 Screenshots are [here](${{ steps.upload-screenshots.outputs.artifact-url }})!'
+          comment_tag: screenshots-url
+          pr_number: ${{ github.event.number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  wc-e2e-run:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    name: Webcomponents e2e tests / GN v${{ matrix.gn_version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gn_version: [4.2.2, 4.2.8, 4.4.0]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - id: npm-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/Cypress
+            .nx
+          key: ${{ runner.os }}-npm-nx-cypress-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-nx-cypress-${{ hashFiles('**/package-lock.json') }}
+            ${{ runner.os }}-npm-nx-cypress-
+
+      - run: npm ci
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+
+      - name: Start up backend support services
+        env:
+          GEONETWORK_VERSION: ${{ matrix.gn_version }}
+        working-directory: support-services
+        run: docker compose up --quiet-pull init
+
+      - name: Start webcomponents demo server and run webcomponents e2e tests
+        run: npm run webcomponents:e2e:ci
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        id: upload-screenshots-wc
+        with:
+          name: cypress-screenshots-wc-gn-${{ matrix.gn_version }}
+          path: apps/webcomponents/cypress/screenshots/**/*
+
+      - uses: thollander/actions-comment-pull-request@v2
+        if: always() && github.event_name == 'pull_request' && steps.upload-screenshots-wc.outputs.artifact-url
+        with:
+          message: '📷 Screenshots for webcomponents are [here](${{ steps.upload-screenshots-wc.outputs.artifact-url }})!'
+          comment_tag: screenshots-wc-url
+          pr_number: ${{ github.event.number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-npm-package:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    name: Attempt to build the NPM package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - id: npm-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/Cypress
+            .nx
+          key: ${{ runner.os }}-npm-nx-cypress-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-nx-cypress-${{ hashFiles('**/package-lock.json') }}
+            ${{ runner.os }}-npm-nx-cypress-
+
+      - run: npm ci
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+
+      - name: Build NPM package
+        working-directory: package
+        run: node generate-package.js

@@ -1,0 +1,446 @@
+import { HttpClient, HttpEventType } from '@angular/common/http'
+import { Injectable, InjectionToken, inject } from '@angular/core'
+import {
+  KeywordApiResponse,
+  ThesaurusApiResponse,
+} from '@geonetwork-ui/api/metadata-converter'
+import {
+  CatalogRecord,
+  Keyword,
+  Organization,
+  UserFeedback,
+} from '@geonetwork-ui/common/domain/model/record'
+import { KeywordType } from '@geonetwork-ui/common/domain/model/thesaurus'
+import { UserModel } from '@geonetwork-ui/common/domain/model/user/user.model'
+import {
+  PlatformServiceInterface,
+  UploadEvent,
+} from '@geonetwork-ui/common/domain/platform.service.interface'
+import {
+  MeApiService,
+  RecordsApiService,
+  RegistriesApiService,
+  ToolsApiService,
+  UserfeedbackApiService,
+  UsersApiService,
+} from '@geonetwork-ui/data-access/gn4'
+import { toLang3 } from '@geonetwork-ui/util/i18n'
+import { noDuplicateFileName } from '@geonetwork-ui/util/shared'
+import { TranslateService } from '@ngx-translate/core'
+import {
+  combineLatest,
+  forkJoin,
+  Observable,
+  of,
+  switchMap,
+  throwError,
+} from 'rxjs'
+import {
+  catchError,
+  filter,
+  map,
+  mergeMap,
+  shareReplay,
+  tap,
+} from 'rxjs/operators'
+import { ltr } from 'semver'
+import { Gn4SettingsService } from '../settings/gn4-settings.service'
+import { Gn4PlatformMapper } from './gn4-platform.mapper'
+
+const minApiVersion = '4.2.2'
+
+export const DISABLE_AUTH = new InjectionToken<boolean>('gnDisableAuth', {
+  factory: () => false,
+})
+
+@Injectable()
+export class Gn4PlatformService implements PlatformServiceInterface {
+  private meApi = inject(MeApiService)
+  private usersApi = inject(UsersApiService)
+  private mapper = inject(Gn4PlatformMapper)
+  private toolsApiService = inject(ToolsApiService)
+  private registriesApiService = inject(RegistriesApiService)
+  private translateService = inject(TranslateService)
+  private userfeedbackApiService = inject(UserfeedbackApiService)
+  private httpClient = inject(HttpClient)
+  private recordsApiService = inject(RecordsApiService)
+  private settingsService = inject(Gn4SettingsService)
+  private disableAuth = inject(DISABLE_AUTH, { optional: true })
+
+  private readonly type = 'GeoNetwork'
+  private readonly users$: Observable<UserModel[]>
+  private readonly isUserAnonymous$: Observable<boolean>
+  private readonly gnParseVersion = '4.2.5'
+
+  private keyTranslations$ = this.toolsApiService
+    .getTranslationsPackage1('gnui')
+    .pipe(
+      catchError(() => {
+        console.warn('Error while loading gnui language package')
+        return of({})
+      }),
+      shareReplay(1)
+    )
+
+  private me$ = this.disableAuth
+    ? of(null)
+    : of(true).pipe(
+        switchMap(() => this.meApi.getMe()),
+        switchMap((apiUser) => this.mapper.userFromMeApi(apiUser)),
+        shareReplay({ bufferSize: 1, refCount: true })
+      )
+
+  /**
+   * A map of already loaded thesauri (groups of keywords); the key is a URI
+   * @private
+   */
+  private keywordsByThesauri: Record<string, Observable<Keyword[]>> = {}
+
+  private get lang3() {
+    return toLang3(this.translateService.currentLang)
+  }
+
+  constructor() {
+    this.isUserAnonymous$ = this.me$.pipe(
+      map((user) => !user || !('id' in user))
+    )
+
+    this.users$ = this.usersApi.getUsers().pipe(
+      map((users) => users.map((user) => this.mapper.userFromApi(user))),
+      shareReplay()
+    )
+  }
+
+  getFeedbacksAllowed(): Observable<boolean> {
+    return this.settingsService.allowFeedbacks$
+  }
+
+  getAllowEditHarvestedMd(): Observable<boolean> {
+    return this.settingsService.allowEditHarvested$
+  }
+
+  getType(): string {
+    return this.type
+  }
+
+  getApiVersion(): Observable<string> {
+    return this.settingsService.apiVersion$.pipe(
+      tap((version) => {
+        if (ltr(version, minApiVersion)) {
+          throw new Error(
+            `Gn4 API version is not compatible.\nMinimum: ${minApiVersion}\nYour version: ${version}`
+          )
+        }
+      })
+    )
+  }
+
+  getMe(): Observable<UserModel> {
+    return this.me$
+  }
+
+  isAnonymous(): Observable<boolean> {
+    return this.isUserAnonymous$
+  }
+
+  getOrganizations(): Observable<Organization[]> {
+    return undefined
+  }
+
+  getUsersByOrganization(organisation: Organization): Observable<UserModel[]> {
+    return undefined
+  }
+
+  getUsers(): Observable<UserModel[]> {
+    return this.users$
+  }
+
+  translateKey(key: string): Observable<string> {
+    // if the key is a URI, use the registries API to look for the translation
+    if (key.match(/^https?:\/\//)) {
+      // the thesaurus URI is inferred by removing a part of the keyword URI
+      // this is not exact science but it's OK, we'll still end up loading a bunch of keywords at once anyway
+      const thesaurusUri = key.replace(/\/([^/]+)$/, '/')
+      return this.getKeywordsByUri(thesaurusUri).pipe(
+        map((thesaurus) => {
+          for (const item of thesaurus) {
+            if (item.key === key) return item.label
+          }
+          return key
+        })
+      )
+    }
+    return this.keyTranslations$.pipe(map((translations) => translations[key]))
+  }
+
+  private allThesaurus$ = this.httpClient
+    .get(
+      `${this.registriesApiService.configuration.basePath}/thesaurus?_content_type=json`
+    )
+    .pipe(
+      map((thesaurus) => {
+        return thesaurus[0] as ThesaurusApiResponse[]
+      }),
+      shareReplay(1)
+    )
+
+  searchKeywords(
+    query: string,
+    keywordTypes: KeywordType[]
+  ): Observable<Keyword[]> {
+    const keywords$: Observable<KeywordApiResponse[]> = this.allThesaurus$.pipe(
+      switchMap((thesaurus) => {
+        const selectedThesauri = []
+        keywordTypes.map((keywordType) => {
+          selectedThesauri.push(
+            ...thesaurus.filter((thes) => thes.dname === keywordType)
+          )
+        })
+
+        return this.registriesApiService.searchKeywords(
+          query,
+          this.lang3,
+          10,
+          0,
+          null,
+          selectedThesauri.map((thes) => thes.key),
+          null,
+          `*${query}*`
+        ) as Observable<KeywordApiResponse[]>
+      })
+    )
+
+    return combineLatest([keywords$, this.allThesaurus$]).pipe(
+      map(([keywords, thesaurus]) => {
+        return this.mapper.keywordsFromApi(keywords, thesaurus, this.lang3)
+      })
+    )
+  }
+
+  getKeywordsByUri(uri: string): Observable<Keyword[]> {
+    if (this.keywordsByThesauri[uri]) {
+      return this.keywordsByThesauri[uri]
+    }
+    const keywords$ = this.registriesApiService.searchKeywords(
+      null,
+      this.lang3,
+      1000,
+      0,
+      null,
+      null,
+      null,
+      `${uri}*`
+    ) as Observable<KeywordApiResponse[]>
+
+    this.keywordsByThesauri[uri] = combineLatest([
+      keywords$,
+      this.allThesaurus$,
+    ]).pipe(
+      map(([keywords, thesaurus]) => {
+        return this.mapper.keywordsFromApi(keywords, thesaurus, this.lang3)
+      }),
+      shareReplay(1)
+    )
+
+    return this.keywordsByThesauri[uri]
+  }
+
+  searchKeywordsInThesaurus(query: string, thesaurusId: string) {
+    return this.allThesaurus$.pipe(
+      switchMap((thesauri) => {
+        const strippedThesaurusId = thesaurusId.replace(
+          'geonetwork.thesaurus.',
+          ''
+        )
+        if (!thesauri.find((thes) => thes.key === strippedThesaurusId))
+          return of([])
+        return this.registriesApiService
+          .searchKeywords(
+            query,
+            this.lang3,
+            100,
+            0,
+            null,
+            [strippedThesaurusId],
+            null
+          )
+          .pipe(
+            map((keywords: KeywordApiResponse[]) =>
+              this.mapper.keywordsFromApi(keywords, thesauri, this.lang3)
+            )
+          )
+      })
+    )
+  }
+
+  getUserFeedbacks(uuid: string): Observable<UserFeedback[]> {
+    return this.userfeedbackApiService.getUserComments(uuid).pipe(
+      map((userFeedbacks) =>
+        userFeedbacks.map(this.mapper.userFeedbacksFromApi)
+      ),
+      catchError((error) => {
+        console.error('Error fetching user feedbacks:', error)
+        return of(undefined)
+      })
+    )
+  }
+
+  postUserFeedbacks(userFeedback: UserFeedback): Observable<void> {
+    const mappedUserFeedBack = this.mapper.userFeedbacksToApi(userFeedback)
+    return this.userfeedbackApiService.newUserFeedback(mappedUserFeedBack).pipe(
+      map(() => undefined),
+      catchError((error) => {
+        console.error('Error posting user feedback:', error)
+        return of(undefined)
+      })
+    )
+  }
+
+  getRecordAttachments(recordUuid: string) {
+    return this.recordsApiService.getAllResources(recordUuid).pipe(
+      map((resources) =>
+        resources.map((r) => ({
+          url: new URL(r.url),
+          fileName: r.filename,
+        }))
+      )
+    )
+  }
+
+  cleanRecordAttachments(record: CatalogRecord): Observable<void> {
+    return combineLatest([
+      this.recordsApiService.getAssociatedResources(record.uniqueIdentifier),
+      this.recordsApiService.getAllResources(record.uniqueIdentifier),
+    ]).pipe(
+      map(([associated, attachments]) => {
+        const { onlines = [], thumbnails = [] } = associated
+
+        const urlsToKeep = [
+          ...(Array.isArray(onlines) ? onlines : []),
+          ...(Array.isArray(thumbnails) ? thumbnails : []),
+        ].map((resource) => Object.values(resource.url)[0])
+        const fileToDelete = attachments.reduce<string[]>((acc, attachment) => {
+          if (
+            !urlsToKeep.includes(attachment.url) &&
+            attachment.filename !== 'datavizConfig.json'
+          ) {
+            acc.push(attachment.filename)
+          }
+          return acc
+        }, [])
+
+        return fileToDelete
+      }),
+      mergeMap((filesToDelete) =>
+        filesToDelete.length
+          ? forkJoin(
+              filesToDelete.map((filename) =>
+                this.recordsApiService.delResource(
+                  record.uniqueIdentifier,
+                  filename
+                )
+              )
+            ).pipe(map(() => undefined))
+          : of(undefined)
+      ),
+      catchError((error) => {
+        console.error('Error while cleaning attachments:', error)
+        throw error
+      })
+    )
+  }
+
+  private uploadFile(recordUuid: string, file: File): Observable<UploadEvent> {
+    let sizeBytes = -1
+    return this.recordsApiService
+      .putResource(recordUuid, file, 'public', undefined, 'events', true)
+      .pipe(
+        map((event) => {
+          if (event.type === HttpEventType.UploadProgress) {
+            sizeBytes = event.total
+            return {
+              type: 'progress',
+              progress: event.total
+                ? Math.round((100 * event.loaded) / event.total)
+                : 0,
+            } as UploadEvent
+          }
+          if (event.type === HttpEventType.Response) {
+            return {
+              type: 'success',
+              attachment: {
+                url: new URL(event.body.url),
+                fileName: event.body.filename,
+              },
+              sizeBytes,
+            } as UploadEvent
+          }
+          return undefined
+        }),
+        filter((event) => !!event),
+        catchError((error) => {
+          return throwError(
+            () => new Error(error.error?.message ?? error.message)
+          )
+        })
+      )
+  }
+  getFileContent(url: URL | string): Observable<any> {
+    return combineLatest([
+      this.httpClient.get(url.toString(), { responseType: 'text' }),
+      this.getApiVersion(),
+    ]).pipe(
+      map(([text, version]) => {
+        const parsed = JSON.parse(text)
+
+        if (version > this.gnParseVersion) {
+          return parsed
+        }
+
+        const decoded = this.decodeBase64(parsed)
+        return JSON.parse(decoded)
+      })
+    )
+  }
+
+  decodeBase64(base64) {
+    const text = atob(base64)
+    const length = text.length
+    const bytes = new Uint8Array(length)
+    for (let i = 0; i < length; i++) {
+      bytes[i] = text.charCodeAt(i)
+    }
+    const decoder = new TextDecoder()
+    return decoder.decode(bytes)
+  }
+
+  attachFileToRecord(
+    recordUuid: string,
+    file: File,
+    removeDuplicate = false
+  ): Observable<UploadEvent> {
+    return this.getRecordAttachments(recordUuid).pipe(
+      map((recordAttachments) => recordAttachments.map((r) => r.fileName)),
+      switchMap((fileNames) => {
+        const fileName = file.name
+
+        if (removeDuplicate && fileNames.includes(file.name)) {
+          return this.recordsApiService.delResource(recordUuid, fileName).pipe(
+            switchMap(() => {
+              const fileCopy = new File([file], fileName, { type: file.type })
+              return this.uploadFile(recordUuid, fileCopy)
+            })
+          )
+        } else {
+          const finalFileName = noDuplicateFileName(fileName, fileNames)
+          const fileCopy = new File([file], finalFileName, { type: file.type })
+          return this.uploadFile(recordUuid, fileCopy)
+        }
+      })
+    )
+  }
+
+  supportsAuthentication() {
+    return !this.disableAuth
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "name": "webcomponents",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/webcomponents/src",
+  "prefix": "wc",
+  "tags": ["type:app", "scope:webcomponents"],
+  "targets": {
+    "build": {
+      "executor": "@angular-devkit/build-angular:browser",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/webcomponents",
+        "index": "apps/webcomponents/src/index.html",
+        "main": "apps/webcomponents/src/main.ts",
+        "polyfills": "apps/webcomponents/src/polyfills.ts",
+        "tsConfig": "apps/webcomponents/tsconfig.app.json",
+        "assets": [],
+        "styles": [],
+        "scripts": [],
+        "allowedCommonJsDependencies": [
+          "duration-relativetimeformat",
+          "papaparse",
+          "xlsx",
+          "chroma-js",
+          "@rgrove/parse-xml",
+          "messageformat",
+          "rbush"
+        ]
+      },
+      "configurations": {
+        "production": {
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "2mb",
+              "maximumError": "10mb"
+            },
+            {
+              "type": "anyComponentStyle",
+              "maximumWarning": "256kb",
+              "maximumError": "1mb"
+            }
+          ],
+          "outputHashing": "all"
+        },
+        "development": {
+          "buildOptimizer": false,
+          "optimization": false,
+          "vendorChunk": true,
+          "extractLicenses": false,
+          "sourceMap": true,
+          "namedChunks": true
+        },
+        "webcomponents": {
+          "outputHashing": "none",
+          "outputPath": "dist/webcomponents",
+          "deleteOutputPath": true,
+          "sourceMap": false
+        },
+        "standaloneSearch": {
+          "outputHashing": "none",
+          "main": "apps/webcomponents/src/standalone-search.ts",
+          "outputPath": "dist/standalone-search",
+          "deleteOutputPath": true,
+          "sourceMap": false
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "serve": {
+      "executor": "@angular-devkit/build-angular:dev-server",
+      "configurations": {
+        "production": {
+          "buildTarget": "webcomponents:build:production"
+        },
+        "development": {
+          "buildTarget": "webcomponents:build:development"
+        }
+      },
+      "defaultConfiguration": "development",
+      "continuous": true
+    },
+    "extract-i18n": {
+      "executor": "@angular-devkit/build-angular:extract-i18n",
+      "options": {
+        "buildTarget": "webcomponents:build"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": [
+          "apps/webcomponents/src/**/*.ts",
+          "apps/webcomponents/src/**/*.html"
+        ]
+      },
+      "outputs": ["{options.outputFile}"]
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/apps/webcomponents"],
+      "options": {
+        "jestConfig": "apps/webcomponents/jest.config.ts",
+        "tsConfig": "apps/webcomponents/tsconfig.spec.json"
+      }
+    },
+    "build-artefacts": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx run webcomponents:build:webcomponents",
+          "nx run webcomponents:build:standaloneSearch",
+          "tools/webcomponent/bundle-artefacts.sh"
+        ],
+        "parallel": false
+      }
+    },
+    "build-artefacts-dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx run webcomponents:build:webcomponents --optimization=false --watch",
+          "nx run webcomponents:build:standaloneSearch --optimization=false --watch",
+          "tools/webcomponent/bundle-artefacts.sh --watch"
+        ],
+        "parallel": true
+      }
+    },
+    "e2e": {
+      "executor": "@nx/cypress:cypress",
+      "options": {
+        "cypressConfig": "apps/webcomponents/cypress.config.ts",
+        "baseUrl": "http://localhost:5173/",
+        "testingType": "e2e",
+        "browser": "chrome"
+      },
+      "env": {
+        "browserPermissions": {
+          "write": "allow"
+        }
+      }
+    }
+  }
+}

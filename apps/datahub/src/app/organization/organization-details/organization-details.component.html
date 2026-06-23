@@ -1,0 +1,95 @@
+@if (currentOrganization$ | async; as organization) {
+  <ng-container *ngrxLet="lastPublishedDatasets$ as lastPublishedDatasets">
+    <div id="organization-details-container" class="flex flex-col gap-[72px]">
+      <div class="h-full container-lg mx-auto px-[25px] w-full">
+        <div class="flex flex-row justify-between gap-[70px]">
+          <div id="organization-details-left" class="w-2/3 mt-14">
+            <div class="flex flex-col gap-11">
+              @if (organization.description) {
+                <gn-ui-max-lines [maxLines]="2">
+                  <div class="mb-6">
+                    <gn-ui-markdown-parser
+                      data-test="organizationDescription"
+                      [textContent]="organization.description"
+                    ></gn-ui-markdown-parser>
+                  </div>
+                </gn-ui-max-lines>
+              }
+            </div>
+          </div>
+          <div
+            id="organization-details-right"
+            class="w-[300px] flex flex-col gap-5"
+          >
+            <div
+              data-test="organizationLogo"
+              class="border-solid border border-gray-300 rounded-md bg-white h-[185px] overflow-hidden -mt-28"
+            >
+              <gn-ui-thumbnail
+                class="relative"
+                [thumbnailUrl]="organization.logoUrl?.href"
+                [fit]="'contain'"
+              >
+              </gn-ui-thumbnail>
+            </div>
+            <a
+              data-test="organizationDatasetCount"
+              [routerLink]="['/', ROUTER_ROUTE_SEARCH]"
+              [queryParams]="{
+                organization: sanitizeOrgName(organization.name),
+              }"
+            >
+              <gn-ui-figure
+                class="py-[37px] pl-[47px] rounded-lg border bg-white mb-5 card-shadow cursor-pointer"
+                [figure]="organization.recordCount"
+                [icon]="'tablerFolderOpen'"
+                [title]="'catalog.figures.datasets'"
+                [color]="'secondary'"
+              ></gn-ui-figure>
+            </a>
+            @if (organization.email) {
+              <a
+                data-test="organizationEmail"
+                [href]="'mailto:' + organization.email"
+                target="_top"
+                class="uppercase w-full h-[44px] gn-ui-btn-primary rounded-lg"
+              >
+                <span translate> organization.details.mailContact </span>
+              </a>
+            }
+          </div>
+        </div>
+      </div>
+      <div class="w-full bg-primary/10">
+        <div class="container-lg lg:mx-auto px-4 pt-12 pb-[72px]">
+          @if (isSearchFacadeLoading$ | async) {
+            <div
+              data-test="orgPageIsOrgLoading"
+              class="flex justify-center w-full h-[200px] items-center"
+            >
+              <gn-ui-spinning-loader></gn-ui-spinning-loader>
+            </div>
+          } @else {
+            <datahub-record-internal-links
+              [title]="'organization.details.lastPublishedDatasets' | translate"
+              [titleIsSectionTitle]="true"
+              [records]="lastPublishedDatasets"
+              [routerLinkButton]="{
+                routerLink: ['/', ROUTER_ROUTE_SEARCH],
+                queryParams: {
+                  organization: sanitizeOrgName(organization.name),
+                },
+                label:
+                  'organization.details.lastPublishedDatasets.searchAllButton'
+                  | translate,
+              }"
+              data-test="orgPageLasPubDat"
+            ></datahub-record-internal-links>
+          }
+        </div>
+      </div>
+    </div>
+  </ng-container>
+} @else {
+  <gn-ui-error [type]="errorTypes.ORGANIZATION_NOT_FOUND"></gn-ui-error>
+}

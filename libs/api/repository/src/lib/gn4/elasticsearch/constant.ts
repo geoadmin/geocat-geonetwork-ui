@@ -1,0 +1,33 @@
+export const ES_SOURCE_SUMMARY = [
+  'uuid',
+  'id',
+  'title',
+  'resource*',
+  'resourceTitleObject',
+  'resourceAbstractObject',
+  'overview',
+  'logo',
+  'link',
+  'linkProtocol',
+  'contactForResource*.organisation*',
+  'contact*.organisation*',
+  'contact*.email',
+  'userSavedCount',
+  'cl_topic',
+  'cl_maintenanceAndUpdateFrequency',
+  'cl_presentationForm',
+  'MD_LegalConstraints*Object',
+  'qualityScore',
+  'allKeywords',
+  'recordLink',
+]
+
+export type EsQueryFieldsPriorityType = Record<string, number>
+export const ES_QUERY_FIELDS_PRIORITY = {
+  'resourceTitleObject.${searchLang}': 5,
+  'tag.${searchLang}': 4,
+  'resourceAbstractObject.${searchLang}': 3,
+  'lineageObject.${searchLang}': 2,
+  'any.${searchLang}': 1,
+  uuid: 1,
+}

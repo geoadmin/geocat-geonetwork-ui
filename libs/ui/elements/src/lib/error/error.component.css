@@ -1,0 +1,35 @@
+ng-icon {
+  width: 5rem;
+  height: 5rem;
+}
+ng-icon.face {
+  width: 3em;
+  height: 3em;
+}
+ng-icon.question-mark1 {
+  position: absolute;
+  bottom: 1.9em;
+  left: calc(50% + 1.2em);
+  width: 1.7em;
+  height: 1.7em;
+}
+ng-icon.question-mark2 {
+  position: absolute;
+  bottom: 2.3em;
+  left: calc(50% + 2.3em);
+  width: 1.4em;
+  height: 1.4em;
+}
+
+ng-icon.computer {
+  width: 3em;
+  height: 3em;
+}
+
+ng-icon.computer-question-mark {
+  position: absolute;
+  top: 0.7em;
+  left: calc(50% - 0.6em);
+  width: 1.2em;
+  height: 1.2em;
+}

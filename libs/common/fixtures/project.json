@@ -1,0 +1,24 @@
+{
+  "name": "common-fixtures",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/common/fixtures/src",
+  "prefix": "gn-ui",
+  "projectType": "library",
+  "tags": ["type:util", "scope:shared"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/common/fixtures"],
+      "options": {
+        "jestConfig": "libs/util/i18n/jest.config.ts"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/common/fixtures/**/*.ts"]
+      }
+    }
+  }
+}
