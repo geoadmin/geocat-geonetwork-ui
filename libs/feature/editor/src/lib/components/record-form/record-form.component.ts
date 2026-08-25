@@ -8,8 +8,8 @@ import {
   EditorFieldWithValue,
   EditorSectionWithValues,
 } from '../../+state/editor.models'
-import { map } from 'rxjs'
-import { CatalogRecordKeys } from '@geonetwork-ui/common/domain/model/record'
+import { map, Observable } from 'rxjs'
+import { CatalogRecordKeys, RecordTranslations, LanguageCode } from '@geonetwork-ui/common/domain/model/record'
 
 @Component({
   selector: 'gn-ui-record-form',
@@ -26,11 +26,28 @@ export class RecordFormComponent {
     map((record) => record.uniqueIdentifier)
   )
 
+  recordTranslations$: Observable<RecordTranslations> = this.facade.record$.pipe(
+    map((record) => record.translations || {})
+  )
+
+  recordDefaultLanguage$: Observable<LanguageCode> = this.facade.record$.pipe(
+    map((record) => record.defaultLanguage || 'fr')
+  )
+
+  recordLanguages$: Observable<LanguageCode[]> = this.facade.record$.pipe(
+    map((record) => record.otherLanguages || [])
+  )
+
   handleFieldValueChange(model: CatalogRecordKeys, newValue: EditorFieldValue) {
     if (!model) {
       return
     }
     this.facade.updateRecordField(model, newValue)
+  }
+
+  handleTranslationsChange(translations: RecordTranslations) {
+    // Update translations in the record
+    this.facade.updateRecordField('translations', translations)
   }
 
   fieldTracker(index: number, field: EditorFieldWithValue) {

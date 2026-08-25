@@ -72,6 +72,11 @@ export const RECORD_TOPICS_FIELD: EditorField = {
   formFieldConfig: {},
 }
 
+export const RECORD_SUB_TOPICS_FIELD: EditorField = {
+  model: 'subTopics',
+  formFieldConfig: {},
+}
+
 export const RECORD_RESOURCE_CREATED_FIELD: EditorField = {
   model: 'resourceCreated',
   formFieldConfig: {
@@ -247,7 +252,7 @@ export const TOPICS_SECTION: EditorSection = {
   labelKey: marker('editor.record.form.section.topics.label'),
   descriptionKey: marker('editor.record.form.section.topics.description'),
   hidden: false,
-  fields: [RECORD_TOPICS_FIELD],
+  fields: [RECORD_TOPICS_FIELD, RECORD_SUB_TOPICS_FIELD],
 }
 
 export const USE_AND_ACCESS_CONDITIONS_SECTION: EditorSection = {
@@ -322,10 +327,52 @@ export const AVAILABLE_LICENSES: string[] = [
   'odbl',
   'odc-by',
   'pddl',
+  'terms_open',
+  'terms_by',
+  'terms_ask',
+  'terms_by_ask',
   'unknown',
 ]
 
 export const OPEN_DATA_LICENSE = 'etalab'
+
+/**
+ * Map license codes to their English label keys for i18n
+ */
+export const LICENSE_CODE_TO_I18N_KEY: Record<string, string> = {
+  'cc-by': 'editor.record.form.license.cc-by',
+  'cc-by-sa': 'editor.record.form.license.cc-by-sa',
+  'cc-zero': 'editor.record.form.license.cc-zero',
+  'etalab': 'editor.record.form.license.etalab',
+  'etalab-v2': 'editor.record.form.license.etalab-v2',
+  'odbl': 'editor.record.form.license.odbl',
+  'odc-by': 'editor.record.form.license.odc-by',
+  'pddl': 'editor.record.form.license.pddl',
+  'terms_open': 'editor.record.form.license.terms_open',
+  'terms_by': 'editor.record.form.license.terms_by',
+  'terms_ask': 'editor.record.form.license.terms_ask',
+  'terms_by_ask': 'editor.record.form.license.terms_by_ask',
+  'unknown': 'editor.record.form.license.unknown',
+}
+
+/**
+ * English text descriptions for each license code (used for matching when reading from XML)
+ */
+export const LICENSE_CODE_TO_TEXT_EN: Record<string, string> = {
+  'cc-by': 'Creative Commons Attribution',
+  'cc-by-sa': 'Creative Commons Attribution-ShareAlike',
+  'cc-zero': 'Creative Commons CC-0',
+  'etalab': 'Open Licence (Etalab)',
+  'etalab-v2': 'Open Licence v2.0 (Etalab)',
+  'odbl': 'Open Data Commons ODbL',
+  'odc-by': 'Open Data Commons ODC-By',
+  'pddl': 'Open Data Commons PDDL',
+  'terms_open': 'Opendata OPEN: Open use.',
+  'terms_by': 'Opendata BY: Open use. Must provide the source.',
+  'terms_ask': 'Opendata ASK: Open use. Use for commercial purposes requires permission of the data owner.',
+  'terms_by_ask': 'Opendata BY ASK: Open use. Must provide the source. Use for commercial purposes requires permission of the data owner.',
+  'unknown': 'Unknown or absent',
+}
 
 marker('editor.record.form.license.cc-by')
 marker('editor.record.form.license.cc-by-sa')
@@ -333,6 +380,12 @@ marker('editor.record.form.license.cc-zero')
 marker('editor.record.form.license.etalab')
 marker('editor.record.form.license.etalab-v2')
 marker('editor.record.form.license.odbl')
+marker('editor.record.form.license.odc-by')
+marker('editor.record.form.license.pddl')
+marker('editor.record.form.license.terms_open')
+marker('editor.record.form.license.terms_by')
+marker('editor.record.form.license.terms_ask')
+marker('editor.record.form.license.terms_by_ask')
 marker('editor.record.form.license.odc-by')
 marker('editor.record.form.license.pddl')
 marker('editor.record.form.license.unknown')
@@ -431,3 +484,80 @@ marker('editor.record.form.topics.inspire.structure')
 marker('editor.record.form.topics.inspire.transportation')
 marker('editor.record.form.topics.inspire.utilities')
 marker('editor.record.form.topics.inspire.waters')
+
+export const CHE_SUB_TOPICS: Array<{ value: string; label: string }> = [
+  {
+    value: 'imageryBaseMapsEarthCover_BaseMaps',
+    label: 'editor.record.form.subtopics.che.a1_basemaps',
+  },
+  {
+    value: 'imageryBaseMapsEarthCover_EarthCover',
+    label: 'editor.record.form.subtopics.che.a2_earthcover',
+  },
+  {
+    value: 'imageryBaseMapsEarthCover_Imagery',
+    label: 'editor.record.form.subtopics.che.a3_imagery',
+  },
+  {
+    value: 'planningCadastre_Planning',
+    label: 'editor.record.form.subtopics.che.e1_planning',
+  },
+  {
+    value: 'planningCadastre_Cadastre',
+    label: 'editor.record.form.subtopics.che.e2_cadastre',
+  },
+  {
+    value: 'geoscientificInformation_Geology',
+    label: 'editor.record.form.subtopics.che.f1_geology',
+  },
+  {
+    value: 'geoscientificInformation_Soils',
+    label: 'editor.record.form.subtopics.che.f2_soils',
+  },
+  {
+    value: 'geoscientificInformation_NaturalHazards',
+    label: 'editor.record.form.subtopics.che.f3_naturalhazards',
+  },
+  {
+    value: 'environment_EnvironmentalProtection',
+    label: 'editor.record.form.subtopics.che.l1_envprotection',
+  },
+  {
+    value: 'environment_NatureProtection',
+    label: 'editor.record.form.subtopics.che.l2_natureprotection',
+  },
+  {
+    value: 'utilitiesCommunication_Energy',
+    label: 'editor.record.form.subtopics.che.q1_energy',
+  },
+  {
+    value: 'utilitiesCommunication_Utilities',
+    label: 'editor.record.form.subtopics.che.q2_utilities',
+  },
+  {
+    value: 'utilitiesCommunication_Communication',
+    label: 'editor.record.form.subtopics.che.q3_communication',
+  },
+]
+
+marker('editor.record.form.subtopics.che.agriculture')
+marker('editor.record.form.subtopics.che.biodiversity')
+marker('editor.record.form.subtopics.che.climatology')
+marker('editor.record.form.subtopics.che.environment')
+marker('editor.record.form.subtopics.che.forests')
+marker('editor.record.form.subtopics.che.geography')
+marker('editor.record.form.subtopics.che.geology')
+marker('editor.record.form.subtopics.che.geomorphology')
+marker('editor.record.form.subtopics.che.health')
+marker('editor.record.form.subtopics.che.hydrology')
+marker('editor.record.form.subtopics.che.imagery')
+marker('editor.record.form.subtopics.che.land')
+marker('editor.record.form.subtopics.che.lakes')
+marker('editor.record.form.subtopics.che.mountains')
+marker('editor.record.form.subtopics.che.planning')
+marker('editor.record.form.subtopics.che.protected_areas')
+marker('editor.record.form.subtopics.che.sea')
+marker('editor.record.form.subtopics.che.sediments')
+marker('editor.record.form.subtopics.che.soils')
+marker('editor.record.form.subtopics.che.utilities')
+marker('editor.record.form.subtopics.che.waste')

@@ -35,6 +35,7 @@ export class NewRecordResolver {
           otherLanguages: [],
           defaultLanguage: 'en',
           topics: [],
+          subTopics: [],
           keywords: [],
           licenses: [],
           legalConstraints: [NOT_KNOWN_CONSTRAINT],

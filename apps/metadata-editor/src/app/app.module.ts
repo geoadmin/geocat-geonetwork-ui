@@ -15,6 +15,7 @@ import {
   provideRepositoryUrl,
   SETTINGS_URL,
 } from '@geonetwork-ui/api/repository'
+import { DEEPL_API_KEY } from '@geonetwork-ui/api/metadata-converter'
 import { FeatureEditorModule } from '@geonetwork-ui/feature/editor'
 import { FeatureRecordModule } from '@geonetwork-ui/feature/record'
 import {
@@ -31,6 +32,7 @@ import {
 } from '@geonetwork-ui/util/shared'
 import { EffectsModule } from '@ngrx/effects'
 import { StoreModule } from '@ngrx/store'
+import { environment } from '../environments/environment'
 import { AppComponent } from './app.component'
 import { appRoutes } from './app.routes'
 import { extModules } from './build-specifics'
@@ -87,6 +89,10 @@ import { EditorRouterService } from './router.service'
     {
       provide: SETTINGS_URL,
       useFactory: () => getGlobalConfig().SETTINGS_URL,
+    },
+    {
+      provide: DEEPL_API_KEY,
+      useValue: environment.deepl.apiKey,
     },
   ],
   bootstrap: [AppComponent],

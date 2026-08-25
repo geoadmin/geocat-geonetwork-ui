@@ -1,6 +1,6 @@
 module.exports = {
   '/geonetwork': {
-    target: 'https://www.geocat.ch',
+    target: 'https://geocat-dev.dev.bgdi.ch',
     secure: true,
     logLevel: 'debug',
     changeOrigin: true,

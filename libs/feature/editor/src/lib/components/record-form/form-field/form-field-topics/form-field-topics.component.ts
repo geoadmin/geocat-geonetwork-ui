@@ -17,9 +17,9 @@ import { INSPIRE_TOPICS } from '../../../../fields.config'
 export class FormFieldTopicsComponent {
   private translateService = inject(TranslateService)
 
-  topics = []
-  @Input() set value(topics: string[]) {
-    this.topics = topics
+  topics: string[] = []
+  @Input() set value(topics: string[] | null | undefined) {
+    this.topics = topics || []
   }
   @Output() valueChange: EventEmitter<string[]> = new EventEmitter()
   availableTopics = INSPIRE_TOPICS.map((topic) => {
