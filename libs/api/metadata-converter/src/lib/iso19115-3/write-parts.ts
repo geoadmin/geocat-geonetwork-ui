@@ -1,6 +1,7 @@
 import {
   CatalogRecord,
   DatasetRecord,
+  FieldTranslation,
   Individual,
   LanguageCode,
 } from '@geonetwork-ui/common/domain/model/record'
@@ -10,6 +11,7 @@ import {
   appendChildTree,
   createChild,
   createElement,
+  createNestedElement,
   findChildElement,
   findChildOrCreate,
   findChildrenElement,
@@ -24,6 +26,7 @@ import {
   XmlElement,
 } from '../xml-utils'
 import {
+  ChainableFunction,
   fallback,
   filterArray,
   getAtIndex,
@@ -31,6 +34,7 @@ import {
   mapArray,
   noop,
   pipe,
+  tap,
 } from '../function-utils'
 import {
   appendKeywords,
@@ -38,7 +42,7 @@ import {
   appendServiceOnlineResources,
   createDistributionInfo,
   findOrCreateDistribution,
-  findOrCreateIdentification,
+  findOrCreateIdentification as findOrCreateIdentificationISO19139,
   getProgressCode,
   getRoleCode,
   removeKeywords,
@@ -46,11 +50,101 @@ import {
   writeDateTime,
   writeLinkage,
   writeLocalizedCharacterString,
+  getISODuration,
+  writeDecimal,
 } from '../iso19139/write-parts'
+import { writeGeometry } from '../iso19139/utils/geometry'
 import { findIdentification } from '../iso19139/read-parts'
+import { readKind } from './read-parts'
 import { namePartsToFull } from '../iso19139/utils/individual-name'
 import { toLang3 } from '@geonetwork-ui/util/i18n/language-codes'
 import { kindToCodeListValue } from '../common/resource-types'
+
+/**
+ * ISO19115-3 version of writeLocalizedCharacterString
+ * Handles multilingual content with proper ISO19115-3 namespaces (lan:)
+ * When translations exist: uses ONLY lan:PT_FreeText (no gco:CharacterString)
+ * When no translations: uses only gco:CharacterString
+ */
+function writeLocalizedElement19115(
+  writeFn: ChainableFunction<XmlElement, XmlElement>,
+  text: string,
+  translations: FieldTranslation,
+  defaultLanguage: LanguageCode
+): ChainableFunction<XmlElement, XmlElement> {
+  if (!translations) {
+    // No translations: just write CharacterString, remove any PT_FreeText
+    return pipe(writeFn, removeChildrenByName('lan:PT_FreeText'))
+  }
+
+  // Has translations: create ONLY lan:PT_FreeText, remove CharacterString
+  function createLocalized(lang: LanguageCode, translation: string) {
+    return pipe(
+      createNestedElement('lan:textGroup', 'lan:LocalisedCharacterString'),
+      writeAttribute('locale', `#${lang.toUpperCase()}`),
+      setTextContent(translation)
+    )
+  }
+
+  return pipe(
+    // Remove both old gmd: and new lan: versions, plus CharacterString
+    removeChildrenByName('lan:PT_FreeText'),
+    removeChildrenByName('gmd:PT_FreeText'),
+    removeChildrenByName('gco:CharacterString'),
+    createChild('lan:PT_FreeText'),
+    appendChildren(
+      createLocalized(defaultLanguage, text),
+      ...Object.entries(translations).map(([lang, translation]) =>
+        createLocalized(lang, translation)
+      )
+    )
+  )
+}
+
+export function writeLocalizedCharacterString19115(
+  text: string,
+  translations: FieldTranslation,
+  defaultLanguage: LanguageCode
+): ChainableFunction<XmlElement, XmlElement> {
+  return writeLocalizedElement19115(
+    writeCharacterString(text),
+    text,
+    translations,
+    defaultLanguage
+  )
+}
+
+/**
+ * ISO19115-3 version of findOrCreateIdentification that handles:
+ * - Standard ISO19115-3: mdb:identificationInfo/mri:MD_DataIdentification
+ * - Service identification: mdb:identificationInfo/srv:SV_ServiceIdentification
+ * - CHE variant: mdb:identificationInfo/che:CHE_MD_DataIdentification
+ */
+export function findOrCreateIdentification() {
+  return (rootEl: XmlElement) => {
+    const kind = readKind(rootEl)
+    const identificationInfoEl = findChildOrCreate('mdb:identificationInfo')(rootEl)
+
+    // Try to find existing identification element
+    let identEl = findChildElement('mri:MD_DataIdentification')(identificationInfoEl)
+    if (identEl) return identEl
+
+    if (kind === 'service') {
+      identEl = findChildElement('srv:SV_ServiceIdentification')(identificationInfoEl)
+      if (identEl) return identEl
+    }
+
+    // Check for CHE variant (Swiss extension)
+    identEl = findChildElement('che:CHE_MD_DataIdentification')(identificationInfoEl)
+    if (identEl) return identEl
+
+    // Create appropriate element based on kind
+    let eltName = 'mri:MD_DataIdentification'
+    if (kind === 'service') eltName = 'srv:SV_ServiceIdentification'
+
+    return createChild(eltName)(identificationInfoEl)
+  }
+}
 
 export function writeUniqueIdentifier(
   record: CatalogRecord,
@@ -563,4 +657,186 @@ export function writeOtherLanguages(record: DatasetRecord, rootEl: XmlElement) {
       pipe(createElement('mdb:otherLocale'), writeLocaleElement(lang))
     )
   )(rootEl)
+}
+
+/**
+ * ISO19115-3 override of writeTitle
+ * Uses proper ISO19115-3 namespaces and prevents duplicate CharacterString
+ */
+export function writeTitle(record: CatalogRecord, rootEl: XmlElement) {
+  pipe(
+    findOrCreateIdentification(),
+    findNestedChildOrCreate('mri:citation', 'cit:CI_Citation', 'cit:title'),
+    writeLocalizedCharacterString19115(
+      record.title,
+      record.translations?.title,
+      record.defaultLanguage
+    )
+  )(rootEl)
+}
+
+/**
+ * ISO19115-3 override of writeAbstract
+ * Uses proper ISO19115-3 namespaces and prevents duplicate CharacterString
+ */
+export function writeAbstract(record: CatalogRecord, rootEl: XmlElement) {
+  pipe(
+    findOrCreateIdentification(),
+    findChildOrCreate('mri:abstract'),
+    writeLocalizedCharacterString19115(
+      record.abstract,
+      record.translations?.abstract,
+      record.defaultLanguage
+    )
+  )(rootEl)
+}
+
+/**
+ * Write update frequency for ISO19115-3 format (mmi namespace)
+ */
+export function writeUpdateFrequency(
+  record: DatasetRecord,
+  rootEl: XmlElement
+) {
+  const maintenanceEl = pipe(
+    findOrCreateIdentification(),
+    findNestedChildOrCreate('mri:resourceMaintenance', 'mmi:MD_MaintenanceInformation')
+  )(rootEl)
+
+  if (!maintenanceEl) return
+
+  // Remove existing frequency elements
+  removeChildrenByName('mmi:maintenanceAndUpdateFrequency')(maintenanceEl)
+  removeChildrenByName('mmi:userDefinedMaintenanceFrequency')(maintenanceEl)
+
+  if (typeof record.updateFrequency === 'object') {
+    // User-defined maintenance frequency with ISO 8601 duration
+    appendChildren(
+      pipe(
+        createElement('mmi:userDefinedMaintenanceFrequency'),
+        createChild('gco:TM_PeriodDuration'),
+        setTextContent(getISODuration(record.updateFrequency))
+      )
+    )(maintenanceEl)
+  } else {
+    // Standard maintenance frequency code
+    const freqStr = typeof record.updateFrequency === 'string' ? record.updateFrequency : 'unknown'
+    appendChildren(
+      pipe(
+        createElement('mmi:maintenanceAndUpdateFrequency'),
+        createChild('mmi:MD_MaintenanceFrequencyCode'),
+        writeAttribute(
+          'codeList',
+          'https://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#MD_MaintenanceFrequencyCode'
+        ),
+        writeAttribute('codeListValue', freqStr),
+        setTextContent(freqStr)
+      )
+    )(maintenanceEl)
+  }
+}
+
+/**
+ * Write spatial extents for ISO19115-3 format with multilingual descriptions
+ */
+export function writeSpatialExtents(record: DatasetRecord, rootEl: XmlElement) {
+  const appendBoundingPolygon = (geometry?: any) => {
+    if (!geometry) return null
+    return pipe(
+      createElement('gex:EX_BoundingPolygon'),
+      appendChildren(
+        pipe(
+          createElement('gex:polygon'),
+          appendChildren(() => writeGeometry(geometry))
+        )
+      )
+    )
+  }
+
+  const appendGeographicBoundingBox = (
+    bbox?: [number, number, number, number]
+  ) => {
+    if (!bbox) return null
+    return pipe(
+      createElement('gex:EX_GeographicBoundingBox'),
+      appendChildren(
+        pipe(createElement('gex:westBoundLongitude'), writeDecimal(bbox[0])),
+        pipe(createElement('gex:eastBoundLongitude'), writeDecimal(bbox[2])),
+        pipe(createElement('gex:southBoundLatitude'), writeDecimal(bbox[1])),
+        pipe(createElement('gex:northBoundLatitude'), writeDecimal(bbox[3]))
+      )
+    )
+  }
+
+  const appendDescription = (
+    description?: string,
+    translations?: FieldTranslation
+  ) => {
+    if (!description) return null
+    return pipe(
+      createElement('gex:description'),
+      writeLocalizedCharacterString19115(
+        description,
+        translations,
+        record.defaultLanguage
+      )
+    )
+  }
+
+  pipe(
+    findOrCreateIdentification(),
+    findNestedChildOrCreate('mri:extent', 'gex:EX_Extent'),
+    removeChildrenByName('gex:geographicElement'),
+    appendChildren(
+      ...record.spatialExtents.map((extent) =>
+        pipe(
+          createElement('gex:geographicElement'),
+          appendChildren(
+            appendBoundingPolygon(extent.geometry),
+            appendGeographicBoundingBox(extent.bbox),
+            appendDescription(
+              extent.description,
+              extent.translations?.description
+            )
+          )
+        )
+      )
+    )
+  )(rootEl)
+}
+
+/**
+ * Write sub-topic categories for CHE variant
+ */
+export function writeSubTopicCategories(
+  record: DatasetRecord,
+  rootEl: XmlElement
+) {
+  const identification = findOrCreateIdentification()(rootEl)
+  if (!identification) return
+
+  // Remove existing sub-topic categories
+  removeChildrenByName('che:subTopicCategory')(identification)
+
+  // Add new ones if present in record
+  if (record.topics && record.topics.length > 0) {
+    appendChildren(
+      ...record.topics.map((topic) =>
+        pipe(
+          createElement('che:subTopicCategory'),
+          appendChildren(
+            pipe(
+              createElement('che:CHE_MD_SubTopicCategoryCode'),
+              writeAttribute(
+                'codeList',
+                'http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CHE_MD_SubTopicCategoryCode'
+              ),
+              writeAttribute('codeListValue', topic),
+              setTextContent(topic)
+            )
+          )
+        )
+      )
+    )(identification)
+  }
 }

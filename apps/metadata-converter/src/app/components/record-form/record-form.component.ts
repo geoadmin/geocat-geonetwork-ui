@@ -98,6 +98,7 @@ export class RecordFormComponent implements AfterViewInit {
       otherConstraints: hasPrevious ? [...this.record.otherConstraints] : [],
       keywords: hasPrevious ? this.record.keywords : [],
       topics: hasPrevious ? this.record.topics : [],
+      subTopics: hasPrevious ? this.record.subTopics : [],
       onlineResources: [],
       otherLanguages: [],
       defaultLanguage: 'en',

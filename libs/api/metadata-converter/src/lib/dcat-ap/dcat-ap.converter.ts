@@ -56,6 +56,7 @@ export class DcatApConverter extends BaseConverter<string> {
     spatialExtents: readSpatialExtents,
     keywords: readKeywords,
     topics: readTopics,
+    subTopics: () => undefined, // not supported in DCAT-AP
     resourceIdentifiers: () => undefined,
     recordUpdated: readRecordUpdated,
     recordCreated: readRecordCreated,
@@ -105,6 +106,7 @@ export class DcatApConverter extends BaseConverter<string> {
     contactsForResource: () => undefined,
     keywords: () => undefined,
     topics: () => undefined,
+    subTopics: () => undefined,
     licenses: () => undefined,
     legalConstraints: () => undefined,
     securityConstraints: () => undefined,

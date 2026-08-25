@@ -3,58 +3,38 @@ import { XmlElement } from '@rgrove/parse-xml'
 import { Iso19139Converter } from '../iso19139'
 import { renameElements } from '../xml-utils'
 import {
-  readAbstract,
   readContacts,
   readContactsForResource,
   readDefaultLanguage,
-  readIsoTopics,
-  readKeywords,
   readKind,
+  readLandingPage,
   readLineage,
   readOnlineResources,
   readOtherLanguages,
-  readOverviews,
   readOwnerOrganization,
+  readRecordCreated,
+  readRecordPublished,
   readRecordUpdated,
-  readResourceCreated,
-  readResourceUpdated,
-  readResourcePublished,
-  readResourceIdentifier,
   readReuseType,
-  readTitle,
   readUniqueIdentifier,
-  readUpdateFrequency,
-} from '../iso19139/read-parts'
+} from './read-parts'
 import {
   writeContacts,
   writeContactsForResource,
   writeDefaultLanguage,
   writeKind,
+  writeLandingPage,
   writeLineage,
   writeOnlineResources,
-  writeLanguages,
+  writeOtherLanguages,
+  writeRecordCreated,
+  writeRecordPublished,
   writeRecordUpdated,
-  writeResourceCreated,
-  writeResourcePublished,
-  writeResourceUpdated,
   writeReuseType,
   writeSpatialRepresentation,
   writeStatus,
   writeUniqueIdentifier,
-  writeTitle,
-  writeAbstract,
-  writeUpdateFrequency,
-  writeSpatialExtents,
-  writeTopics,
-  writeLegalConstraints,
-  writeSecurityConstraints,
-  writeOtherConstraints,
-  writeGraphicOverviews,
-  writeKeywords,
-  writeLicenses,
-  writeTemporalExtents,
-  writeResourceIdentifier,
-} from '../iso19139/write-parts'
+} from './write-parts'
 
 export class Iso191153Converter extends Iso19139Converter {
   constructor() {
@@ -63,54 +43,34 @@ export class Iso191153Converter extends Iso19139Converter {
     this.readers['uniqueIdentifier'] = readUniqueIdentifier
     this.readers['kind'] = readKind
     this.readers['recordUpdated'] = readRecordUpdated
-    this.readers['resourceUpdated'] = readResourceUpdated
-    this.readers['resourceCreated'] = readResourceCreated
-    this.readers['resourcePublished'] = readResourcePublished
+    this.readers['recordCreated'] = readRecordCreated
+    this.readers['recordPublished'] = readRecordPublished
     this.readers['contacts'] = readContacts
     this.readers['contactsForResource'] = readContactsForResource
     this.readers['ownerOrganization'] = readOwnerOrganization
-    this.readers['title'] = readTitle
-    this.readers['abstract'] = readAbstract
-    this.readers['keywords'] = readKeywords
-    this.readers['topics'] = readIsoTopics
-    this.readers['overviews'] = readOverviews
-    this.readers['resourceIdentifiers'] = readResourceIdentifier
+    this.readers['landingPage'] = readLandingPage
     this.readers['lineage'] = readLineage
     this.readers['onlineResources'] = readOnlineResources
     this.readers['defaultLanguage'] = readDefaultLanguage
     this.readers['otherLanguages'] = readOtherLanguages
     this.readers['reuseType'] = readReuseType
-    this.readers['updateFrequency'] = readUpdateFrequency
 
     this.writers['uniqueIdentifier'] = writeUniqueIdentifier
     this.writers['kind'] = writeKind
     this.writers['recordUpdated'] = writeRecordUpdated
-    this.writers['resourceUpdated'] = writeResourceUpdated
-    this.writers['resourceCreated'] = writeResourceCreated
-    this.writers['resourcePublished'] = writeResourcePublished
+    this.writers['recordCreated'] = writeRecordCreated
+    this.writers['recordPublished'] = writeRecordPublished
     this.writers['reuseType'] = writeReuseType
     this.writers['contacts'] = writeContacts
     this.writers['contactsForResource'] = writeContactsForResource
     this.writers['ownerOrganization'] = () => undefined // fixme: find a way to store this value properly
+    this.writers['landingPage'] = writeLandingPage
     this.writers['lineage'] = writeLineage
     this.writers['onlineResources'] = writeOnlineResources
     this.writers['status'] = writeStatus
     this.writers['spatialRepresentation'] = writeSpatialRepresentation
     this.writers['defaultLanguage'] = writeDefaultLanguage
-    this.writers['otherLanguages'] = writeLanguages
-    this.writers['title'] = writeTitle
-    this.writers['abstract'] = writeAbstract
-    this.writers['updateFrequency'] = writeUpdateFrequency
-    this.writers['keywords'] = writeKeywords
-    this.writers['topics'] = writeTopics
-    this.writers['legalConstraints'] = writeLegalConstraints
-    this.writers['securityConstraints'] = writeSecurityConstraints
-    this.writers['otherConstraints'] = writeOtherConstraints
-    this.writers['overviews'] = writeGraphicOverviews
-    this.writers['licenses'] = writeLicenses
-    this.writers['spatialExtents'] = writeSpatialExtents
-    this.writers['temporalExtents'] = writeTemporalExtents
-    this.writers['resourceIdentifiers'] = writeResourceIdentifier
+    this.writers['otherLanguages'] = writeOtherLanguages
   }
 
   beforeDocumentCreation(rootEl: XmlElement) {

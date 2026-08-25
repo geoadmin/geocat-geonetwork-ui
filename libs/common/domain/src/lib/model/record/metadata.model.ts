@@ -130,6 +130,7 @@ export interface BaseRecord {
   recordUpdated: Date
   kind: RecordKind
   topics: Array<string> // TODO: handle codelists
+  subTopics: Array<string> // CHE-specific sub-topics
   keywords: Array<Keyword>
   licenses: Array<Constraint>
   legalConstraints: Array<Constraint>

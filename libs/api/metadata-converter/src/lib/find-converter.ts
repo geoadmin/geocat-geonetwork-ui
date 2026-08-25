@@ -6,7 +6,14 @@ import { DcatApConverter } from './dcat-ap'
 export function findConverterForDocument(
   document: string
 ): BaseConverter<string> {
-  if (document.indexOf('mdb:MD_Metadata') > 0) {
+  if (!document) {
+    throw new Error('Document is null or undefined')
+  }
+  // Check for ISO19115-3 format (including CHE variant)
+  if (
+    document.indexOf('mdb:MD_Metadata') > 0 ||
+    document.indexOf('che:CHE_MD_Metadata') > 0
+  ) {
     return new Iso191153Converter()
   } else if (document.indexOf('gmd:MD_Metadata') > 0) {
     return new Iso19139Converter()

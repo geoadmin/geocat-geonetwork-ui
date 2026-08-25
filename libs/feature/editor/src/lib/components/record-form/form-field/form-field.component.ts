@@ -18,6 +18,8 @@ import {
   Keyword,
   OnlineResource,
   UpdateFrequency,
+  RecordTranslations,
+  LanguageCode,
 } from '@geonetwork-ui/common/domain/model/record'
 import { FormFieldWrapperComponent } from '@geonetwork-ui/ui/layout'
 import { TranslatePipe } from '@ngx-translate/core'
@@ -37,7 +39,6 @@ import { FormFieldKeywordsComponent } from './form-field-keywords/form-field-key
 import { FormFieldOnlineLinkResourcesComponent } from './form-field-online-link-resources/form-field-online-link-resources.component'
 import { FormFieldOnlineResourcesComponent } from './form-field-online-resources/form-field-online-resources.component'
 import { FormFieldOverviewsComponent } from './form-field-overviews/form-field-overviews.component'
-import { FormFieldRichComponent } from './form-field-rich/form-field-rich.component'
 import { FormFieldSimpleComponent } from './form-field-simple/form-field-simple.component'
 import { FormFieldSpatialExtentComponent } from './form-field-spatial-extent/form-field-spatial-extent.component'
 import { FormFieldUpdateFrequencyComponent } from './form-field-update-frequency/form-field-update-frequency.component'
@@ -46,6 +47,9 @@ import { FormFieldConstraintsComponent } from './form-field-constraints/form-fie
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { FormFieldSpatialToggleComponent } from './form-field-spatial-toggle/form-field-spatial-toggle.component'
 import { FormFieldTopicsComponent } from './form-field-topics/form-field-topics.component'
+import { FormFieldSubTopicsComponent } from './form-field-sub-topics/form-field-sub-topics.component'
+import { FormFieldTitleMultilingualComponent } from './form-field-title-multilingual/form-field-title-multilingual.component'
+import { FormFieldAbstractMultilingualComponent } from './form-field-abstract-multilingual/form-field-abstract-multilingual.component'
 
 @Component({
   selector: 'gn-ui-form-field',
@@ -63,7 +67,6 @@ import { FormFieldTopicsComponent } from './form-field-topics/form-field-topics.
     FormFieldUpdateFrequencyComponent,
     FormFieldTemporalExtentsComponent,
     FormFieldSimpleComponent,
-    FormFieldRichComponent,
     FormFieldSpatialExtentComponent,
     FormFieldKeywordsComponent,
     FormFieldOverviewsComponent,
@@ -75,6 +78,9 @@ import { FormFieldTopicsComponent } from './form-field-topics/form-field-topics.
     FormFieldConstraintsShortcutsComponent,
     FormFieldSpatialToggleComponent,
     FormFieldTopicsComponent,
+    FormFieldSubTopicsComponent,
+    FormFieldTitleMultilingualComponent,
+    FormFieldAbstractMultilingualComponent,
     TextFieldModule,
   ],
 })
@@ -87,7 +93,13 @@ export class FormFieldComponent {
   @Input() config: FormFieldConfig
   @Input() value: unknown
 
+  // Multilingual support
+  @Input() translations: RecordTranslations = {}
+  @Input() defaultLanguage: LanguageCode = 'fr'
+  @Input() otherLanguages: LanguageCode[] = []
+
   @Output() valueChange: EventEmitter<unknown> = new EventEmitter()
+  @Output() translationsChange: EventEmitter<RecordTranslations> = new EventEmitter()
 
   @ViewChild('titleInput') titleInput: ElementRef
   isOpenData = false
@@ -133,6 +145,9 @@ export class FormFieldComponent {
   get valueAsTopics() {
     return this.value as Array<string>
   }
+  get valueAsSubTopics() {
+    return this.value as Array<string>
+  }
   get valueAsConstraints() {
     return this.value as Array<Constraint>
   }
@@ -171,5 +186,9 @@ export class FormFieldComponent {
     } else {
       this.valueChange.emit([{ code }])
     }
+  }
+
+  onResourceIdentifierChange(event: unknown): void {
+    this.handleResourceIdentifierChange(String(event))
   }
 }

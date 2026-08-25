@@ -92,6 +92,7 @@ Cette section contient des *caractères internationaux* (ainsi que des "caractè
       },
     ],
     topics: ['testData', 'exampleData'],
+    subTopics: [],
     spatialRepresentation: 'grid',
     onlineResources: [
       {
@@ -288,6 +289,7 @@ Malgré l'attention portée à la création de ces données, il est rappelé que
       },
     ],
     topics: ['Usage des sols', "document d'urbanisme"],
+    subTopics: [],
     spatialRepresentation: 'vector',
     onlineResources: [
       {
@@ -352,6 +354,7 @@ export const simpleDatasetRecordFixture = (): DatasetRecord => ({
   contactsForResource: [],
   keywords: [],
   topics: ['testData'],
+  subTopics: [],
   licenses: [],
   legalConstraints: [],
   securityConstraints: [],
@@ -403,6 +406,7 @@ export const simpleDatasetRecordWithFcatsFixture = (): DatasetRecord => ({
   contactsForResource: [],
   keywords: [],
   topics: ['testData'],
+  subTopics: [],
   licenses: [],
   legalConstraints: [],
   securityConstraints: [],
@@ -840,6 +844,7 @@ export const simpleServiceRecordFixture = (): ServiceRecord => ({
   contactsForResource: [],
   keywords: [],
   topics: [],
+  subTopics: [],
   spatialExtents: [],
   overviews: [],
   defaultLanguage: null,
@@ -1020,5 +1025,6 @@ export const multilingualDatasetFixture: () => DatasetRecord = () => ({
   uniqueIdentifier: 'ABCD-EFGH',
   overviews: [],
   topics: [],
+  subTopics: [],
   recordUpdated: null,
 })

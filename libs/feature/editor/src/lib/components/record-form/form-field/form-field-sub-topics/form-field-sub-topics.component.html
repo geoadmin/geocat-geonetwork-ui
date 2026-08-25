@@ -1,0 +1,23 @@
+<div class="flex flex-col gap-3">
+  <div class="flex flex-col gap-4">
+    <gn-ui-dropdown-multiselect
+      class="w-full"
+      [title]="'editor.record.form.subtopics.placeholder' | translate"
+      [maxRows]="6"
+      [selected]="subTopics"
+      [choices]="availableSubTopics || []"
+      [allowSearch]="true"
+      (selectValues)="handleItemSelection($event)"
+    >
+    </gn-ui-dropdown-multiselect>
+    <div class="flex gap-2 flex-wrap">
+      @for (subTopic of subTopics; track subTopic) {
+        <gn-ui-badge
+          [removable]="true"
+          (badgeRemoveClicked)="removeSubTopic(subTopic)"
+          >{{ getTranslatedSubTopic(subTopic) }}
+        </gn-ui-badge>
+      }
+    </div>
+  </div>
+</div>
