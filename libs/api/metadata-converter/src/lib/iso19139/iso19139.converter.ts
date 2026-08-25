@@ -117,6 +117,7 @@ export class Iso19139Converter extends BaseConverter<string> {
     spatialExtents: readSpatialExtents,
     otherLanguages: readOtherLanguages,
     defaultLanguage: readDefaultLanguage,
+    subTopics: () => undefined, // not supported in ISO19139, overridden in ISO19115-3
     // TODO
     extras: () => undefined,
     landingPage: () => undefined,
@@ -158,6 +159,7 @@ export class Iso19139Converter extends BaseConverter<string> {
     spatialExtents: writeSpatialExtents,
     otherLanguages: writeLanguages,
     defaultLanguage: writeDefaultLanguage,
+    subTopics: () => undefined, // not supported in ISO19139, overridden in ISO19115-3
     // TODO
     extras: () => undefined,
     landingPage: () => undefined,
