@@ -53,3 +53,7 @@ apps/webcomponents/cypress/screenshots/**
 
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
+
+# Environment and API keys
+.env.local
+apps/metadata-editor/src/environments/environment.ts

@@ -1,10 +1,12 @@
 import {
+  allChildrenElement,
   findChildElement,
   findChildrenElement,
   findNestedElement,
   findNestedElements,
   findParent,
   readAttribute,
+  readText,
   XmlElement,
 } from '../xml-utils'
 import {
@@ -294,19 +296,37 @@ export function readLineage(
 function extractDateInfo(
   type: 'creation' | 'revision' | 'publication'
 ): ChainableFunction<XmlElement, Date> {
-  return pipe(
-    findChildrenElement('mdb:dateInfo', false),
-    filterArray(
-      (el) =>
-        pipe(
-          findChildElement('cit:CI_DateTypeCode'),
-          readAttribute('codeListValue')
-        )(el) === type
-    ),
-    getAtIndex(0),
-    findChildElement('cit:date'),
-    extractDateTime()
-  )
+  return (rootEl: XmlElement) => {
+    // Find all mdb:dateInfo elements
+    const dateInfos = allChildrenElement(rootEl).filter(
+      (child) => child.name === 'mdb:dateInfo'
+    )
+
+    for (const dateInfo of dateInfos) {
+      // Navigate to cit:CI_Date
+      const ciDate = findChildElement('cit:CI_Date')(dateInfo)
+      if (!ciDate) continue
+
+      // Check if dateType/CI_DateTypeCode matches the type we're looking for
+      const dateTypeEl = findChildElement('cit:dateType')(ciDate)
+      if (!dateTypeEl) continue
+
+      const codeEl = findChildElement('cit:CI_DateTypeCode')(dateTypeEl)
+      if (!codeEl) continue
+
+      const codeValue = readAttribute('codeListValue')(codeEl)
+      if (codeValue !== type) continue
+
+      // Found the right date type, now extract the actual date
+      const dateEl = findChildElement('cit:date')(ciDate)
+      if (dateEl) {
+        const result = extractDateTime()(dateEl)
+        if (result) return result
+      }
+    }
+
+    return null
+  }
 }
 
 export function readRecordUpdated(rootEl: XmlElement): Date {
@@ -321,6 +341,69 @@ export function readRecordPublished(rootEl: XmlElement): Date {
   return extractDateInfo('publication')(rootEl)
 }
 
+/**
+ * Extract resource date (from citation)
+ * Structure: mri:citation/cit:CI_Citation/cit:date/cit:CI_Date/cit:dateType/cit:CI_DateTypeCode[@codeListValue=type]
+ * Works with both ISO19115-3 and CHE variants
+ */
+function extractResourceDateInfo(
+  type: 'creation' | 'revision' | 'publication'
+): ChainableFunction<XmlElement, Date> {
+  return (rootEl: XmlElement) => {
+    // Find identification using CHE-compatible function
+    const identification = findIdentification19115()(rootEl)
+    if (!identification) return null
+
+    const citation = findChildElement('mri:citation')(identification)
+    if (!citation) return null
+
+    const ciCitation = findChildElement('cit:CI_Citation')(citation)
+    if (!ciCitation) return null
+
+    // Find all cit:date elements in the citation
+    const dateLists = allChildrenElement(ciCitation).filter(
+      (child) => child.name === 'cit:date'
+    )
+
+    for (const dateList of dateLists) {
+      // Navigate to cit:CI_Date
+      const ciDate = findChildElement('cit:CI_Date')(dateList)
+      if (!ciDate) continue
+
+      // Check if dateType/CI_DateTypeCode matches the type we're looking for
+      const dateTypeEl = findChildElement('cit:dateType')(ciDate)
+      if (!dateTypeEl) continue
+
+      const codeEl = findChildElement('cit:CI_DateTypeCode')(dateTypeEl)
+      if (!codeEl) continue
+
+      const codeValue = readAttribute('codeListValue')(codeEl)
+      if (codeValue !== type) continue
+
+      // Found the right date type, now extract the actual date
+      const dateEl = findChildElement('cit:date')(ciDate)
+      if (dateEl) {
+        const result = extractDateTime()(dateEl)
+        if (result) return result
+      }
+    }
+
+    return null
+  }
+}
+
+export function readResourceUpdated(rootEl: XmlElement): Date {
+  return extractResourceDateInfo('revision')(rootEl)
+}
+
+export function readResourceCreated(rootEl: XmlElement): Date {
+  return extractResourceDateInfo('creation')(rootEl)
+}
+
+export function readResourcePublished(rootEl: XmlElement): Date {
+  return extractResourceDateInfo('publication')(rootEl)
+}
+
 export function readReuseType(rootEl: XmlElement): ReuseType {
   return pipe(
     findNestedElement(
@@ -332,6 +415,45 @@ export function readReuseType(rootEl: XmlElement): ReuseType {
     readAttribute('codeListValue'),
     map((scopeCode): ReuseType => getReuseType(scopeCode))
   )(rootEl)
+}
+
+/**
+ * Read INSPIRE topic categories from mri:topicCategory elements
+ */
+export function readTopics(rootEl: XmlElement): string[] {
+  const identification = findIdentification()(rootEl)
+  if (!identification) return []
+
+  // Find all mri:topicCategory elements, extract their MD_TopicCategoryCode text
+  const topicElements = allChildrenElement(identification).filter(
+    (child) => child.name === 'mri:topicCategory'
+  )
+
+  return topicElements
+    .map((el) => {
+      const codeEl = findChildElement('mri:MD_TopicCategoryCode')(el)
+      // The text content is directly in the mri:MD_TopicCategoryCode element, not in gco:CharacterString
+      return codeEl ? readText()(codeEl) : null
+    })
+    .filter((v) => v) as string[]
+}
+
+export function readSubTopics(rootEl: XmlElement): string[] {
+  const identification = findIdentification()(rootEl)
+  if (!identification) return []
+
+  // Find all che:subTopicCategory elements
+  const subTopicEls = allChildrenElement(identification).filter(
+    (child) => child.name === 'che:subTopicCategory'
+  )
+
+  return subTopicEls
+    .map((el) => {
+      const codeEl = findChildElement('che:CHE_MD_SubTopicCategoryCode')(el)
+      // The text content is directly in the che:CHE_MD_SubTopicCategoryCode element
+      return codeEl ? readText()(codeEl) : null
+    })
+    .filter((v) => v) as string[]
 }
 
 const getMimeType = pipe(
@@ -389,4 +511,21 @@ export function readOtherLanguages(rootEl: XmlElement): LanguageCode[] {
       languages.filter((lang): lang is LanguageCode => lang !== null)
     )
   )(rootEl)
+}
+
+/**
+ * Find the identification element in ISO19115-3 CHE format
+ * Uses mdb:identificationInfo (not gmd:identificationInfo as in ISO19139)
+ * and finds mri:MD_DataIdentification or che:CHE_MD_DataIdentification children
+ */
+export function findIdentification19115() {
+  return pipe(
+    findChildElement('mdb:identificationInfo', false),
+    combine(
+      findChildElement('mri:MD_DataIdentification', false),
+      findChildElement('che:CHE_MD_DataIdentification', false)
+    ),
+    filterArray((el) => el !== null),
+    getAtIndex(0)
+  )
 }
