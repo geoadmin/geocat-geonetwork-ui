@@ -11,6 +11,7 @@ import {
   appendChildTree,
   createChild,
   createElement,
+  createNestedChild,
   createNestedElement,
   findChildElement,
   findChildOrCreate,
@@ -55,6 +56,7 @@ import {
 } from '../iso19139/write-parts'
 import { writeGeometry } from '../iso19139/utils/geometry'
 import { findIdentification } from '../iso19139/read-parts'
+import { findIdentification19115 } from './read-parts'
 import { readKind } from './read-parts'
 import { namePartsToFull } from '../iso19139/utils/individual-name'
 import { toLang3 } from '@geonetwork-ui/util/i18n/language-codes'
@@ -62,43 +64,86 @@ import { kindToCodeListValue } from '../common/resource-types'
 
 /**
  * ISO19115-3 version of writeLocalizedCharacterString
- * Handles multilingual content with proper ISO19115-3 namespaces (lan:)
- * When translations exist: uses ONLY lan:PT_FreeText (no gco:CharacterString)
- * When no translations: uses only gco:CharacterString
+ * Generates proper CHE19115-3.2018 multilingual structure with PT_FreeText
+ *
+ * Structure:
+ * <cit:title xsi:type="lan:PT_FreeText_PropertyType">
+ *   <gco:CharacterString>DEFAULT_TEXT</gco:CharacterString>
+ *   <lan:PT_FreeText>
+ *     <lan:textGroup>
+ *       <lan:LocalisedCharacterString locale="#LANG">TRANSLATION</lan:LocalisedCharacterString>
+ *     </lan:textGroup>
+ *   </lan:PT_FreeText>
+ * </cit:title>
+ *
+ * When translations exist: adds xsi:type and creates BOTH gco:CharacterString + lan:PT_FreeText
+ * When no translations: writes only gco:CharacterString without xsi:type
  */
 function writeLocalizedElement19115(
-  writeFn: ChainableFunction<XmlElement, XmlElement>,
+  parentElement: XmlElement,
   text: string,
   translations: FieldTranslation,
   defaultLanguage: LanguageCode
-): ChainableFunction<XmlElement, XmlElement> {
-  if (!translations) {
-    // No translations: just write CharacterString, remove any PT_FreeText
-    return pipe(writeFn, removeChildrenByName('lan:PT_FreeText'))
+): XmlElement {
+  if (!translations || Object.keys(translations).length === 0) {
+    // No translations: write simple CharacterString, remove PT_FreeText if present
+    removeChildrenByName('lan:PT_FreeText')(parentElement)
+    removeChildrenByName('gco:CharacterString')(parentElement)
+    pipe(
+      createChild('gco:CharacterString'),
+      setTextContent(text)
+    )(parentElement)
+    return parentElement
   }
 
-  // Has translations: create ONLY lan:PT_FreeText, remove CharacterString
-  function createLocalized(lang: LanguageCode, translation: string) {
-    return pipe(
-      createNestedElement('lan:textGroup', 'lan:LocalisedCharacterString'),
-      writeAttribute('locale', `#${lang.toUpperCase()}`),
-      setTextContent(translation)
-    )
+  // Has translations: add xsi:type attribute and create both CharacterString + PT_FreeText
+  writeAttribute('xsi:type', 'lan:PT_FreeText_PropertyType')(parentElement)
+
+  // Remove old PT_FreeText if present (we'll recreate it)
+  removeChildrenByName('lan:PT_FreeText')(parentElement)
+  removeChildrenByName('gmd:PT_FreeText')(parentElement)
+
+  // Write default language as gco:CharacterString
+  removeChildrenByName('gco:CharacterString')(parentElement)
+  pipe(
+    createChild('gco:CharacterString'),
+    setTextContent(text)
+  )(parentElement)
+
+  // Create lan:PT_FreeText with all localized versions
+  const ptFreeTextEl = pipe(
+    createChild('lan:PT_FreeText')
+  )(parentElement)
+
+  // Add textGroup for default language
+  pipe(
+    createChild('lan:textGroup'),
+    (tg: XmlElement) => {
+      pipe(
+        createChild('lan:LocalisedCharacterString'),
+        writeAttribute('locale', `#${defaultLanguage.toUpperCase()}`),
+        setTextContent(text)
+      )(tg)
+      return tg
+    }
+  )(ptFreeTextEl)
+
+  // Add textGroups for other languages
+  for (const [lang, translation] of Object.entries(translations)) {
+    pipe(
+      createChild('lan:textGroup'),
+      (tg: XmlElement) => {
+        pipe(
+          createChild('lan:LocalisedCharacterString'),
+          writeAttribute('locale', `#${lang.toUpperCase()}`),
+          setTextContent(translation)
+        )(tg)
+        return tg
+      }
+    )(ptFreeTextEl)
   }
 
-  return pipe(
-    // Remove both old gmd: and new lan: versions, plus CharacterString
-    removeChildrenByName('lan:PT_FreeText'),
-    removeChildrenByName('gmd:PT_FreeText'),
-    removeChildrenByName('gco:CharacterString'),
-    createChild('lan:PT_FreeText'),
-    appendChildren(
-      createLocalized(defaultLanguage, text),
-      ...Object.entries(translations).map(([lang, translation]) =>
-        createLocalized(lang, translation)
-      )
-    )
-  )
+  return parentElement
 }
 
 export function writeLocalizedCharacterString19115(
@@ -106,12 +151,9 @@ export function writeLocalizedCharacterString19115(
   translations: FieldTranslation,
   defaultLanguage: LanguageCode
 ): ChainableFunction<XmlElement, XmlElement> {
-  return writeLocalizedElement19115(
-    writeCharacterString(text),
-    text,
-    translations,
-    defaultLanguage
-  )
+  return (parentElement: XmlElement) => {
+    return writeLocalizedElement19115(parentElement, text, translations, defaultLanguage)
+  }
 }
 
 /**
@@ -119,30 +161,83 @@ export function writeLocalizedCharacterString19115(
  * - Standard ISO19115-3: mdb:identificationInfo/mri:MD_DataIdentification
  * - Service identification: mdb:identificationInfo/srv:SV_ServiceIdentification
  * - CHE variant: mdb:identificationInfo/che:CHE_MD_DataIdentification
+ *
+ * Returns the FIRST (and only) identification element to prevent duplication
+ * Removes all duplicate identification elements under mdb:identificationInfo
  */
 export function findOrCreateIdentification() {
   return (rootEl: XmlElement) => {
     const kind = readKind(rootEl)
     const identificationInfoEl = findChildOrCreate('mdb:identificationInfo')(rootEl)
 
-    // Try to find existing identification element
+    // Try to find existing identification element - return the first one found
+    // This prevents creating duplicate identificationInfo elements
     let identEl = findChildElement('mri:MD_DataIdentification')(identificationInfoEl)
-    if (identEl) return identEl
+    if (identEl) {
+      // Clean up duplicate identifications of different types
+      removeDuplicateIdentifications('mri:MD_DataIdentification', identificationInfoEl)
+      return identEl
+    }
 
     if (kind === 'service') {
       identEl = findChildElement('srv:SV_ServiceIdentification')(identificationInfoEl)
-      if (identEl) return identEl
+      if (identEl) {
+        removeDuplicateIdentifications('srv:SV_ServiceIdentification', identificationInfoEl)
+        return identEl
+      }
     }
 
     // Check for CHE variant (Swiss extension)
     identEl = findChildElement('che:CHE_MD_DataIdentification')(identificationInfoEl)
-    if (identEl) return identEl
+    if (identEl) {
+      removeDuplicateIdentifications('che:CHE_MD_DataIdentification', identificationInfoEl)
+      return identEl
+    }
 
     // Create appropriate element based on kind
     let eltName = 'mri:MD_DataIdentification'
     if (kind === 'service') eltName = 'srv:SV_ServiceIdentification'
 
+    // Clean before creating to ensure only one
+    removeDuplicateIdentifications(eltName, identificationInfoEl)
     return createChild(eltName)(identificationInfoEl)
+  }
+}
+
+/**
+ * Remove all duplicate identification elements except the first occurrence of keepName
+ * Cleans up elements that might be left from reference record merging
+ */
+function removeDuplicateIdentifications(keepName: string, parent: XmlElement): void {
+  const children = allChildrenElement(parent)
+  let foundFirst = false
+  const toRemoveIndices: number[] = []
+
+  // Find indices of elements to remove
+  for (const child of children) {
+    const isIdentification =
+      child.name === 'mri:MD_DataIdentification' ||
+      child.name === 'che:CHE_MD_DataIdentification' ||
+      child.name === 'srv:SV_ServiceIdentification'
+
+    if (isIdentification) {
+      if (child.name === keepName && !foundFirst) {
+        // Keep the first occurrence of the desired type
+        foundFirst = true
+      } else {
+        // Mark for removal
+        const idx = parent.children.indexOf(child)
+        if (idx > -1) {
+          toRemoveIndices.push(idx)
+        }
+      }
+    }
+  }
+
+  // Remove in reverse order to preserve indices
+  toRemoveIndices.sort((a, b) => b - a)
+  for (const idx of toRemoveIndices) {
+    parent.children.splice(idx, 1)
   }
 }
 
@@ -178,19 +273,43 @@ export function writeKind(record: CatalogRecord, rootEl: XmlElement) {
   )(rootEl)
 }
 
+/**
+ * Remove record date entry by type
+ * Correctly traverses: mdb:dateInfo/cit:CI_Date/cit:dateType/cit:CI_DateTypeCode
+ */
 function removeRecordDate(type: 'revision' | 'creation' | 'publication') {
-  return removeChildren(
-    pipe(
-      findChildrenElement('mdb:dateInfo', false),
-      filterArray(
-        pipe(
-          findChildElement('cit:CI_DateTypeCode'),
-          readAttribute('codeListValue'),
-          map((value) => value === type)
-        )
-      )
+  return (rootEl: XmlElement) => {
+    const dateInfos = allChildrenElement(rootEl).filter(
+      (child) => child.name === 'mdb:dateInfo'
     )
-  )
+    const toRemove: XmlElement[] = []
+
+    for (const dateInfo of dateInfos) {
+      const ciDate = findChildElement('cit:CI_Date')(dateInfo)
+      if (!ciDate) continue
+
+      const dateType = findChildElement('cit:dateType')(ciDate)
+      if (!dateType) continue
+
+      const codeEl = findChildElement('cit:CI_DateTypeCode')(dateType)
+      if (!codeEl) continue
+
+      const codeValue = readAttribute('codeListValue')(codeEl)
+      if (codeValue === type) {
+        toRemove.push(dateInfo)
+      }
+    }
+
+    // Remove in reverse order to preserve indices
+    toRemove.reverse().forEach((el) => {
+      const idx = rootEl.children.indexOf(el)
+      if (idx > -1) {
+        rootEl.children.splice(idx, 1)
+      }
+    })
+
+    return rootEl
+  }
 }
 
 function appendRecordDate(
@@ -220,6 +339,7 @@ function appendRecordDate(
 
 export function writeRecordUpdated(record: CatalogRecord, rootEl: XmlElement) {
   removeRecordDate('revision')(rootEl)
+  if (!record.recordUpdated) return
   appendRecordDate(record.recordUpdated, 'revision')(rootEl)
 }
 
@@ -238,22 +358,46 @@ export function writeRecordPublished(
   appendRecordDate(record.recordPublished, 'publication')(rootEl)
 }
 
+/**
+ * Remove resource date entry by type
+ * Correctly traverses: cit:date/cit:CI_Date/cit:dateType/cit:CI_DateTypeCode
+ */
 function removeResourceDate(type: 'revision' | 'creation' | 'publication') {
   return pipe(
     findOrCreateIdentification(),
     findNestedChildOrCreate('mri:citation', 'cit:CI_Citation'),
-    removeChildren(
-      pipe(
-        findChildrenElement('cit:date', false),
-        filterArray(
-          pipe(
-            findChildElement('cit:CI_DateTypeCode'),
-            readAttribute('codeListValue'),
-            map((value) => value === type)
-          )
-        )
+    (citationEl: XmlElement) => {
+      const dateLists = allChildrenElement(citationEl).filter(
+        (child) => child.name === 'cit:date'
       )
-    )
+      const toRemove: XmlElement[] = []
+
+      for (const dateList of dateLists) {
+        const ciDate = findChildElement('cit:CI_Date')(dateList)
+        if (!ciDate) continue
+
+        const dateType = findChildElement('cit:dateType')(ciDate)
+        if (!dateType) continue
+
+        const codeEl = findChildElement('cit:CI_DateTypeCode')(dateType)
+        if (!codeEl) continue
+
+        const codeValue = readAttribute('codeListValue')(codeEl)
+        if (codeValue === type) {
+          toRemove.push(dateList)
+        }
+      }
+
+      // Remove in reverse order to preserve indices
+      toRemove.reverse().forEach((el) => {
+        const idx = citationEl.children.indexOf(el)
+        if (idx > -1) {
+          citationEl.children.splice(idx, 1)
+        }
+      })
+
+      return citationEl
+    }
   )
 }
 
@@ -262,7 +406,7 @@ function appendResourceDate(
   type: 'revision' | 'creation' | 'publication'
 ) {
   return pipe(
-    findIdentification(),
+    findIdentification19115(),
     findNestedElement('mri:citation', 'cit:CI_Citation'),
     appendChildren(
       pipe(
@@ -427,7 +571,7 @@ export function writeContacts(record: CatalogRecord, rootEl: XmlElement) {
   pipe(
     removeChildrenByName('mdb:contact'),
     appendChildren(
-      ...record.contacts.map((contact) =>
+      ...(record.contacts || []).map((contact) =>
         pipe(
           createElement('gmd:contact'),
           appendResponsibleParty(contact, record.defaultLanguage)
@@ -441,10 +585,11 @@ export function writeContactsForResource(
   record: CatalogRecord,
   rootEl: XmlElement
 ) {
-  const withoutDistributors = record.contactsForResource.filter(
+  const contactsForResource = record.contactsForResource || []
+  const withoutDistributors = contactsForResource.filter(
     (c) => c.role !== 'distributor'
   )
-  const distributors = record.contactsForResource.filter(
+  const distributors = contactsForResource.filter(
     (c) => c.role === 'distributor'
   )
   pipe(
@@ -664,9 +809,23 @@ export function writeOtherLanguages(record: DatasetRecord, rootEl: XmlElement) {
  * Uses proper ISO19115-3 namespaces and prevents duplicate CharacterString
  */
 export function writeTitle(record: CatalogRecord, rootEl: XmlElement) {
+  // CRITICAL: Always update title, even if fieldChanged() returns false
+  // This ensures multilingual titles are preserved through save cycles
+  if (!record.title && (!record.translations?.title || Object.keys(record.translations.title).length === 0)) {
+    // Only skip if there's truly no title data at all
+    return
+  }
+
   pipe(
     findOrCreateIdentification(),
-    findNestedChildOrCreate('mri:citation', 'cit:CI_Citation', 'cit:title'),
+    (identEl: XmlElement) => {
+      const citationEl = findChildOrCreate('mri:citation')(identEl)
+      const citCitationEl = findChildOrCreate('cit:CI_Citation')(citationEl)
+      // REMOVE existing title element to avoid duplicates
+      removeChildrenByName('cit:title')(citCitationEl)
+      return citCitationEl
+    },
+    createChild('cit:title'),
     writeLocalizedCharacterString19115(
       record.title,
       record.translations?.title,
@@ -680,9 +839,19 @@ export function writeTitle(record: CatalogRecord, rootEl: XmlElement) {
  * Uses proper ISO19115-3 namespaces and prevents duplicate CharacterString
  */
 export function writeAbstract(record: CatalogRecord, rootEl: XmlElement) {
+  // CRITICAL: Always update abstract, even if fieldChanged() returns false
+  if (!record.abstract && (!record.translations?.abstract || Object.keys(record.translations.abstract).length === 0)) {
+    return
+  }
+
   pipe(
     findOrCreateIdentification(),
-    findChildOrCreate('mri:abstract'),
+    (identEl: XmlElement) => {
+      // REMOVE existing abstract to avoid duplicates
+      removeChildrenByName('mri:abstract')(identEl)
+      return identEl
+    },
+    createChild('mri:abstract'),
     writeLocalizedCharacterString19115(
       record.abstract,
       record.translations?.abstract,
@@ -734,6 +903,29 @@ export function writeUpdateFrequency(
       )
     )(maintenanceEl)
   }
+}
+
+/**
+ * ISO19115-3 override: Write resource identifier (first one) to citation
+ * Structure: mdb:identificationInfo/che:CHE_MD_DataIdentification/mri:citation/cit:CI_Citation/cit:identifier/mcc:MD_Identifier/mcc:code
+ */
+export function writeResourceIdentifier(
+  record: DatasetRecord,
+  rootEl: XmlElement
+) {
+  const firstIdentifier = record.resourceIdentifiers?.[0]?.code
+
+  pipe(
+    findOrCreateIdentification(),
+    findNestedChildOrCreate('mri:citation', 'cit:CI_Citation'),
+    removeChildrenByName('cit:identifier'),
+    firstIdentifier
+      ? pipe(
+          createNestedChild('cit:identifier', 'mcc:MD_Identifier', 'mcc:code'),
+          writeCharacterString(firstIdentifier)
+        )
+      : noop
+  )(rootEl)
 }
 
 /**
@@ -818,10 +1010,10 @@ export function writeSubTopicCategories(
   // Remove existing sub-topic categories
   removeChildrenByName('che:subTopicCategory')(identification)
 
-  // Add new ones if present in record
-  if (record.topics && record.topics.length > 0) {
+  // Add new ones if present in record - use subTopics, NOT topics
+  if (record.subTopics && record.subTopics.length > 0) {
     appendChildren(
-      ...record.topics.map((topic) =>
+      ...record.subTopics.map((subTopic) =>
         pipe(
           createElement('che:subTopicCategory'),
           appendChildren(
@@ -831,7 +1023,39 @@ export function writeSubTopicCategories(
                 'codeList',
                 'http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CHE_MD_SubTopicCategoryCode'
               ),
-              writeAttribute('codeListValue', topic),
+              writeAttribute('codeListValue', subTopic),
+              setTextContent(subTopic)
+            )
+          )
+        )
+      )
+    )(identification)
+  }
+}
+
+/**
+ * Write ISO19115-3 topic categories as mri:topicCategory elements
+ * (not to be confused with ISO19139 which uses a different structure)
+ */
+export function writeTopicsISO19115(
+  record: DatasetRecord,
+  rootEl: XmlElement
+) {
+  const identification = findOrCreateIdentification()(rootEl)
+  if (!identification) return
+
+  // Remove existing topic categories
+  removeChildrenByName('mri:topicCategory')(identification)
+
+  // Add new ones if present in record
+  if (record.topics && record.topics.length > 0) {
+    appendChildren(
+      ...record.topics.map((topic) =>
+        pipe(
+          createElement('mri:topicCategory'),
+          appendChildren(
+            pipe(
+              createElement('mri:MD_TopicCategoryCode'),
               setTextContent(topic)
             )
           )

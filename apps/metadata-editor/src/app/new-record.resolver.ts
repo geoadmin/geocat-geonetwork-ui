@@ -3,6 +3,7 @@ import {
   CatalogRecord,
   Individual,
   Organization,
+  LanguageCode,
 } from '@geonetwork-ui/common/domain/model/record'
 import { Observable, of } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
@@ -22,6 +23,19 @@ export class NewRecordResolver {
   resolve(): Observable<[CatalogRecord, string, boolean]> {
     return this.getCurrentUserAsPointOfContact().pipe(
       map((userContact) => {
+        // Get current app language, default to 'en' if not available
+        const currentLang = (this.translateService.currentLang ||
+          this.translateService.defaultLang ||
+          'en') as LanguageCode
+
+        // Supported languages
+        const supportedLanguages: LanguageCode[] = ['fr', 'de', 'it', 'en', 'rm']
+
+        // Other languages = all supported languages except the current/default one
+        const otherLanguages = supportedLanguages.filter(
+          (lang) => lang !== currentLang
+        )
+
         const catalogRecord: CatalogRecord = {
           uniqueIdentifier: null,
           title: this.translateService.instant('editor.new.record.title'),
@@ -31,9 +45,18 @@ export class NewRecordResolver {
           },
           contacts: userContact ? [userContact] : [],
           recordUpdated: new Date(),
+          recordCreated: new Date(),
+          recordPublished: new Date(),
+          resourceUpdated: new Date(),
+          resourceCreated: new Date(),
+          resourcePublished: new Date(),
           updateFrequency: 'unknown',
-          otherLanguages: [],
-          defaultLanguage: 'en',
+          otherLanguages: otherLanguages,
+          defaultLanguage: currentLang,
+          translations: {
+            title: {},
+            abstract: {},
+          },
           topics: [],
           subTopics: [],
           keywords: [],

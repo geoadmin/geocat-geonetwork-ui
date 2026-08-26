@@ -242,7 +242,7 @@ export class Iso19139Converter extends BaseConverter<string> {
     const resourcePublished = this.readers['resourcePublished'](rootEl, tr)
     const keywords = this.readers['keywords'](rootEl, tr)
     const topics = this.readers['topics'](rootEl, tr)
-    const subTopics = this.readers['subTopics'](rootEl, tr)
+    const subTopics = this.readers['subTopics'](rootEl, tr) as string[] | undefined
     const legalConstraints = this.readers['legalConstraints'](rootEl, tr)
     const otherConstraints = this.readers['otherConstraints'](rootEl, tr)
     const securityConstraints = this.readers['securityConstraints'](rootEl, tr)
@@ -283,7 +283,7 @@ export class Iso19139Converter extends BaseConverter<string> {
       contactsForResource,
       keywords,
       topics,
-      subTopics,
+      ...(subTopics && subTopics.length > 0 && { subTopics }),
       licenses,
       legalConstraints,
       securityConstraints,
@@ -400,10 +400,11 @@ export class Iso19139Converter extends BaseConverter<string> {
       this.writers['recordCreated'](record, rootEl)
     fieldChanged('recordPublished') &&
       this.writers['recordPublished'](record, rootEl)
-    ;(fieldChanged('title') || fieldChanged('translations')) &&
-      this.writers['title'](record, rootEl)
-    ;(fieldChanged('abstract') || fieldChanged('translations')) &&
-      this.writers['abstract'](record, rootEl)
+
+    // CRITICAL: ALWAYS write title and abstract for multilingual support
+    // These must never be skipped to ensure proper PT_FreeText generation
+    this.writers['title'](record, rootEl)
+    this.writers['abstract'](record, rootEl)
 
     fieldChanged('resourceCreated') &&
       this.writers['resourceCreated'](record, rootEl)
@@ -415,8 +416,10 @@ export class Iso19139Converter extends BaseConverter<string> {
     fieldChanged('contactsForResource') &&
       this.writers['contactsForResource'](record, rootEl)
 
-    fieldChanged('keywords') && this.writers['keywords'](record, rootEl)
+    // CRITICAL: ALWAYS write keywords, topics, subTopics for proper categorization
+    this.writers['keywords'](record, rootEl)
     fieldChanged('topics') && this.writers['topics'](record, rootEl)
+    fieldChanged('subTopics') && this.writers['subTopics'](record, rootEl)
     fieldChanged('legalConstraints') &&
       this.writers['legalConstraints'](record, rootEl)
     fieldChanged('securityConstraints') &&
