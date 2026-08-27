@@ -244,6 +244,8 @@ export interface DatasetSpatialExtent {
   geometry?: Geometry
   description?: string
   translations?: SpatialExtentTranslations
+  subtemplateUuid?: string  // UUID of the GeoNetwork subtemplate if used
+  subtemplateXml?: string   // Raw XML from the subtemplate to include in metadata
 }
 
 /**

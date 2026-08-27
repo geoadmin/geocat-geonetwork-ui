@@ -483,6 +483,11 @@ export class Gn4FieldMapper {
         resourceIdentifiers: mappedIdentifiers,
       }
     },
+    groupOwner: (output, source) =>
+      this.addExtra(
+        { groupOwner: selectField(source, 'groupOwner') },
+        output
+      ),
   }
 
   private genericField = (output) => output

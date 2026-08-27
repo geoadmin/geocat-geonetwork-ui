@@ -57,13 +57,13 @@ import { transformExtent } from 'ol/proj.js'
 
 const DEFAULT_BASEMAP_LAYER: MapContextLayerXyz = {
   type: 'xyz',
-  url: `https://{a-c}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png`,
-  attributions: `<span>© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://carto.com/">Carto</a></span>`,
+  url: `https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg`,
+  attributions: `<span>© <a href="https://www.swisstopo.admin.ch/">Swiss Federal Office of Topography (Swisstopo)</a></span>`,
 }
 
 const DEFAULT_VIEW: MapContextView = {
-  center: [0, 15],
-  zoom: 2,
+  center: [8.2275, 46.8182],  // Center on Switzerland
+  zoom: 7,
 }
 
 @Component({

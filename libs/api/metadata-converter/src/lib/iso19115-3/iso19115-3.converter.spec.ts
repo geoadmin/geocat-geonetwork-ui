@@ -177,4 +177,31 @@ describe('ISO19115-3 converter', () => {
       })
     })
   })
+
+  describe('CHE validation', () => {
+    it('does not duplicate CHE_MD_DataIdentification elements', async () => {
+      const xml = await converter.writeRecord(GENERIC_DATASET_RECORD)
+
+      // Count opening and closing tags for CHE_MD_DataIdentification
+      const openingTags = (xml.match(/<che:CHE_MD_DataIdentification/g) || []).length
+      const closingTags = (xml.match(/<\/che:CHE_MD_DataIdentification>/g) || []).length
+
+      expect(openingTags).toBe(1)
+      expect(closingTags).toBe(1)
+    })
+
+    it('uses correct namespace (mmi) for maintenanceAndUpdateFrequency', async () => {
+      const xml = await converter.writeRecord(GENERIC_DATASET_RECORD)
+
+      // Check that wrong namespace does not appear
+      const wrongNamespace = (xml.match(/<mdb:maintenanceAndUpdateFrequency/g) || []).length
+      expect(wrongNamespace).toBe(0)
+
+      // Check that correct namespace appears when maintenance is present
+      if (xml.includes('resourceMaintenance')) {
+        const correctNamespace = (xml.match(/<mmi:maintenanceAndUpdateFrequency/g) || []).length
+        expect(correctNamespace).toBeGreaterThan(0)
+      }
+    })
+  })
 })

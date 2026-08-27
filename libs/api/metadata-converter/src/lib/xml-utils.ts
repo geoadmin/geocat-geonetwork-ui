@@ -240,7 +240,12 @@ export function xmlToString(
         .join('')
     : ''
   const attrs = Object.keys(el.attributes).reduce(
-    (prev, curr) => prev + ` ${curr}="${encodeEntities(el.attributes[curr])}"`,
+    (prev, curr) => {
+      const attrValue = el.attributes[curr]
+      // Ensure attribute value is a string before encoding
+      const stringValue = typeof attrValue === 'string' ? attrValue : String(attrValue || '')
+      return prev + ` ${curr}="${encodeEntities(stringValue)}"`
+    },
     ''
   )
   const parentPadding = '    '.repeat(Math.max(0, indentationLevel - 1))
@@ -299,6 +304,7 @@ export const NAMESPACES = {
   cat: 'http://standards.iso.org/iso/19115/-3/cat/1.0',
   lan: 'http://standards.iso.org/iso/19115/-3/lan/1.0',
   mrc: 'http://standards.iso.org/iso/19115/-3/mrc/2.0',
+  che: 'http://geocat.ch/che',
   rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
   rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
   foaf: 'http://xmlns.com/foaf/0.1/',

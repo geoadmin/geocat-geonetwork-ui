@@ -10,6 +10,7 @@ import {
   Gn4Converter,
   Gn4SearchResults,
   Iso19139Converter,
+  Iso191153Converter,
 } from '@geonetwork-ui/api/metadata-converter'
 import { PublicationVersionError } from '@geonetwork-ui/common/domain/model/error'
 import {
@@ -370,38 +371,56 @@ export class Gn4Repository implements RecordsRepositoryInterface {
   openRecordForDuplication(
     uniqueIdentifier: string
   ): Observable<[CatalogRecord, string, true] | null> {
-    return this.gn4RecordsApi
-      .create(
-        uniqueIdentifier,
-        '2',
-        'METADATA',
-        '',
-        false,
-        undefined,
-        true,
-        false,
-        undefined,
-        'body',
-        false,
-        {
-          httpHeaderAccept: 'application/json',
-          httpContentTypeSelected: 'application/json;charset=UTF-8',
-        }
-      )
-      .pipe(
-        switchMap((uniqueIdentifier) => {
-          return this.getRecordAsXml(uniqueIdentifier)
-        }),
-        switchMap((xml) => {
-          return from(
-            findConverterForDocument(xml)
-              .readRecord(xml)
-              .then((record) => {
-                return [record, xml, true] as [CatalogRecord, string, true]
-              })
+    // First, get the original record to extract its groupOwner
+    return this.getRecord(uniqueIdentifier).pipe(
+      switchMap((originalRecord) => {
+        // Extract the groupOwner from the original record
+        const groupId = originalRecord?.extras?.['groupOwner'] as string | undefined || '2'
+
+        return this.gn4RecordsApi
+          .create(
+            uniqueIdentifier,
+            groupId,  // Use the original record's group
+            'METADATA',
+            '',
+            false,
+            undefined,
+            true,
+            false,
+            undefined,
+            'body',
+            false,
+            {
+              httpHeaderAccept: 'application/json',
+              httpContentTypeSelected: 'application/json;charset=UTF-8',
+            }
           )
-        })
-      )
+          .pipe(
+            switchMap((newUuid) => {
+              // Get the new XML
+              return this.getRecordAsXml(newUuid).pipe(
+                map((xml) => [originalRecord, xml] as const)
+              )
+            })
+          )
+      }),
+      switchMap(([originalRecord, xml]) => {
+        return from(
+          findConverterForDocument(xml)
+            .readRecord(xml)
+            .then((record) => {
+              // Preserve groupOwner and other extras from the original record
+              if (originalRecord && originalRecord.extras) {
+                record.extras = {
+                  ...record.extras,
+                  ...originalRecord.extras,
+                }
+              }
+              return [record, xml, true] as [CatalogRecord, string, true]
+            })
+        )
+      })
+    )
   }
 
   saveRecord(
@@ -416,8 +435,10 @@ export class Gn4Repository implements RecordsRepositoryInterface {
         }
       }),
       switchMap(() => this.serializeRecordToXml(record, referenceRecordSource)),
-      switchMap((recordXml) =>
-        this.gn4RecordsApi.insert(
+      switchMap((recordXml) => {
+        // Extract groupOwner from extras (for duplication/creation to work properly)
+        const groupOwner = record.extras?.['groupOwner'] as string | undefined
+        return this.gn4RecordsApi.insert(
           'METADATA',
           undefined,
           undefined,
@@ -425,16 +446,16 @@ export class Gn4Repository implements RecordsRepositoryInterface {
           publishToAll,
           undefined,
           'OVERWRITE',
+          groupOwner,
           undefined,
           undefined,
           undefined,
-          '_none_',
           undefined,
           undefined,
           undefined,
           recordXml
         )
-      ),
+      }),
       map((response) => {
         const metadataId = Object.keys(response.metadataInfos)[0]
         return response.metadataInfos[metadataId][0].uuid
@@ -593,10 +614,10 @@ export class Gn4Repository implements RecordsRepositoryInterface {
     record: CatalogRecord,
     referenceRecordSource?: string
   ): Observable<string> {
-    // if there's a reference record, use that standard; otherwise, use iso19139
+    // if there's a reference record, use that standard; otherwise, use iso19115-3 (CHE format) for compatibility with GeoNetwork backend
     const converter = referenceRecordSource
       ? findConverterForDocument(referenceRecordSource)
-      : new Iso19139Converter()
+      : new Iso191153Converter()
     return from(converter.writeRecord(record, referenceRecordSource))
   }
 

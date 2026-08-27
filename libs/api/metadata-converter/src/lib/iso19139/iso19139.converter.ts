@@ -242,7 +242,7 @@ export class Iso19139Converter extends BaseConverter<string> {
     const resourcePublished = this.readers['resourcePublished'](rootEl, tr)
     const keywords = this.readers['keywords'](rootEl, tr)
     const topics = this.readers['topics'](rootEl, tr)
-    const subTopics = this.readers['subTopics'](rootEl, tr)
+    const subTopics = this.readers['subTopics'](rootEl, tr) as string[] | undefined
     const legalConstraints = this.readers['legalConstraints'](rootEl, tr)
     const otherConstraints = this.readers['otherConstraints'](rootEl, tr)
     const securityConstraints = this.readers['securityConstraints'](rootEl, tr)
@@ -283,7 +283,7 @@ export class Iso19139Converter extends BaseConverter<string> {
       contactsForResource,
       keywords,
       topics,
-      subTopics,
+      ...(subTopics && subTopics.length > 0 && { subTopics }),
       licenses,
       legalConstraints,
       securityConstraints,
@@ -400,10 +400,12 @@ export class Iso19139Converter extends BaseConverter<string> {
       this.writers['recordCreated'](record, rootEl)
     fieldChanged('recordPublished') &&
       this.writers['recordPublished'](record, rootEl)
-    ;(fieldChanged('title') || fieldChanged('translations')) &&
-      this.writers['title'](record, rootEl)
-    ;(fieldChanged('abstract') || fieldChanged('translations')) &&
-      this.writers['abstract'](record, rootEl)
+
+    // CRITICAL: ALWAYS write title and abstract for multilingual support
+    // MUST be FIRST in identification to maintain ISO19115-3 element ordering
+    // ISO19115-3 requires: citation, abstract, keywords, topicCategory, etc BEFORE resourceConstraints
+    this.writers['title'](record, rootEl)
+    this.writers['abstract'](record, rootEl)
 
     fieldChanged('resourceCreated') &&
       this.writers['resourceCreated'](record, rootEl)
@@ -415,8 +417,21 @@ export class Iso19139Converter extends BaseConverter<string> {
     fieldChanged('contactsForResource') &&
       this.writers['contactsForResource'](record, rootEl)
 
-    fieldChanged('keywords') && this.writers['keywords'](record, rootEl)
-    fieldChanged('topics') && this.writers['topics'](record, rootEl)
+    // CRITICAL: ALWAYS write keywords, topics, subTopics for proper categorization
+    // Must come BEFORE constraints
+    this.writers['keywords'](record, rootEl)
+    this.writers['topics'](record, rootEl)
+    this.writers['subTopics'](record, rootEl)
+
+    // Write extents BEFORE constraints (ISO19115-3 ordering requirement)
+    if (record.kind === 'dataset') {
+      fieldChanged('spatialExtents') &&
+        this.writers['spatialExtents'](record, rootEl)
+      fieldChanged('temporalExtents') &&
+        this.writers['temporalExtents'](record, rootEl)
+    }
+
+    // resourceConstraints must come AFTER citation, abstract, keywords, topicCategory, extent
     fieldChanged('legalConstraints') &&
       this.writers['legalConstraints'](record, rootEl)
     fieldChanged('securityConstraints') &&
@@ -424,6 +439,7 @@ export class Iso19139Converter extends BaseConverter<string> {
     fieldChanged('licenses') && this.writers['licenses'](record, rootEl)
     fieldChanged('otherConstraints') &&
       this.writers['otherConstraints'](record, rootEl)
+
     fieldChanged('onlineResources') &&
       this.writers['onlineResources'](record, rootEl)
     fieldChanged('resourceIdentifiers') &&
@@ -436,10 +452,6 @@ export class Iso19139Converter extends BaseConverter<string> {
       fieldChanged('spatialRepresentation') &&
         this.writers['spatialRepresentation'](record, rootEl)
       fieldChanged('overviews') && this.writers['overviews'](record, rootEl)
-      fieldChanged('temporalExtents') &&
-        this.writers['temporalExtents'](record, rootEl)
-      fieldChanged('spatialExtents') &&
-        this.writers['spatialExtents'](record, rootEl)
       ;(fieldChanged('lineage') || fieldChanged('translations')) &&
         this.writers['lineage'](record, rootEl)
     }

@@ -1,12 +1,42 @@
 <div class="flex flex-col gap-3">
+  <!-- Swiss Extent Subtemplate Search -->
+  <div class="mb-4">
+    <label class="block text-sm font-medium text-gray-700 mb-2">
+      {{ 'editor.record.form.keywords.place.placeholder' | translate }}
+    </label>
+    <gn-ui-autocomplete
+      [action]="subtemplateSearchAction"
+      [displayWithFn]="displaySubtemplateFn"
+      [placeholder]="'editor.record.form.keywords.place.placeholder' | translate"
+      [minCharacterCount]="1"
+      [clearOnSelection]="true"
+      (itemSelected)="handleSubtemplateSelection($any($event))"
+    ></gn-ui-autocomplete>
+  </div>
+
+  <!-- COMMENTED: Generic Keywords Search via Thesaurus (no longer functional)
   <gn-ui-generic-keywords
     [placeholder]="'editor.record.form.keywords.place.placeholder' | translate"
     [keywords]="shownKeywords$ | async"
     [keywordTypes]="['place']"
-    (deletedKeyword)="handleKeywordDelete($event)"
-    (addedKeyword)="handleKeywordAdd($event)"
-  >
-  </gn-ui-generic-keywords>
+    (keywordDeleted)="handleKeywordDelete($event)"
+    (keywordAdded)="handleKeywordAdd($event)"
+  ></gn-ui-generic-keywords>
+  -->
+
+  <!-- Display selected extents as badges -->
+  <div class="flex gap-2 flex-wrap mb-4">
+    <ng-container *ngIf="(spatialExtents$ | async) as extents">
+      <gn-ui-badge
+        *ngFor="let extent of extents"
+        [removable]="true"
+        (badgeRemoveClicked)="removeExtent(extent)"
+      >
+        {{ extent.description }}
+      </gn-ui-badge>
+    </ng-container>
+  </div>
+
   <div class="w-full h-96 mt-2">
     <gn-ui-spatial-extent
       [spatialExtents]="spatialExtents$ | async"
