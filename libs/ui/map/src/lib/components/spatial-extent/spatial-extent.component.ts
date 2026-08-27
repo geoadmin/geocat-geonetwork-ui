@@ -42,14 +42,22 @@ export class SpatialExtentComponent {
             properties: {},
             geometry: extent.geometry,
           })
-        } else if (extent.bbox?.length >= 0) {
+        } else if (extent.bbox && Array.isArray(extent.bbox) && extent.bbox.length === 4) {
           featureCollection.features.push({
             type: 'Feature',
             properties: {},
             geometry: this.bboxCoordsToGeometry(extent.bbox),
           })
+        } else {
+          console.warn('Extent has no valid geometry or bbox:', extent)
         }
       })
+
+      // If no features could be created, return default view instead of error
+      if (featureCollection.features.length === 0) {
+        console.warn('No valid features in feature collection, using default map view')
+        return null // null context means default view
+      }
 
       const layer: MapContextLayer = {
         type: 'geojson',

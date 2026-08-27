@@ -1,24 +1,18 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject } from '@angular/core'
 import {
   DatasetSpatialExtent,
   Keyword,
 } from '@geonetwork-ui/common/domain/model/record'
-import { GenericKeywordsComponent } from '../../../generic-keywords/generic-keywords.component'
-import { PlatformServiceInterface } from '@geonetwork-ui/common/domain/platform.service.interface'
-import { firstValueFrom, map, shareReplay } from 'rxjs'
+import { AutocompleteComponent, BadgeComponent } from '@geonetwork-ui/ui/inputs'
+import { firstValueFrom, map, shareReplay, Observable, tap } from 'rxjs'
 import { EditorFacade } from '../../../../+state/editor.facade'
-import { switchMap } from 'rxjs/operators'
-import { TranslatePipe, TranslateService } from '@ngx-translate/core'
+import { TranslatePipe } from '@ngx-translate/core'
 import { SPATIAL_SCOPES } from '../../../../fields.config'
 import { SpatialExtentComponent } from '@geonetwork-ui/ui/map'
+import { GeoNetworkSubtemplateService, SubtemplateExtent } from '@geonetwork-ui/data-access/gn4'
 
-// This intermediary type will let us keep track of which keyword is bound to
-// which extent; these properties will not be persisted
-type KeywordWithExtent = Keyword & {
-  _linkedExtent: DatasetSpatialExtent
-  _doNotSave: boolean
-}
+type AutocompleteItem = { title: string; value: SubtemplateExtent }
 
 /**
  * This form field is not like the others, as it will read directly from the state to handle both spatial extents
@@ -34,147 +28,214 @@ type KeywordWithExtent = Keyword & {
   standalone: true,
   imports: [
     CommonModule,
-    GenericKeywordsComponent,
+    AutocompleteComponent,
+    BadgeComponent,
     TranslatePipe,
     SpatialExtentComponent,
   ],
 })
 export class FormFieldSpatialExtentComponent {
-  private platformService = inject(PlatformServiceInterface)
   private editorFacade = inject(EditorFacade)
-  private translateService = inject(TranslateService)
+  private subtemplateService = inject(GeoNetworkSubtemplateService)
+  private changeDetector = inject(ChangeDetectorRef)
 
   spatialExtents$ = this.editorFacade.record$.pipe(
     map((record) => ('spatialExtents' in record ? record?.spatialExtents : []))
   )
 
   allKeywords$ = this.editorFacade.record$.pipe(
-    map((record) => record?.keywords)
+    map((record) => ('keywords' in record ? record?.keywords : []))
   )
 
-  shownKeywords$ = this.editorFacade.record$.pipe(
-    map((record) => record?.keywords.filter((k) => k.type === 'place')),
-    // look for full keywords in the thesauri
-    switchMap((keywords) =>
-      Promise.all(
-        keywords.map(async (keyword) => {
-          if (!keyword.thesaurus) return keyword
-          const allKeywords = await firstValueFrom(
-            this.platformService.searchKeywordsInThesaurus(
-              keyword.label,
-              keyword.thesaurus.id
-            )
-          )
-          const found = allKeywords.find((k) => k.label === keyword.label)
-          return found ?? keyword
-        })
-      )
+  shownKeywords$ = this.allKeywords$.pipe(
+    map((keywords) =>
+      keywords.filter((k) => (SPATIAL_SCOPES as any).includes(k.type))
     ),
-    // add additional "unnamed" keywords for extents without a matching keyword
-    switchMap(async (keywords) => {
-      const spatialExtents = await firstValueFrom(this.spatialExtents$)
-      const keywordsFromExtents = await Promise.all(
-        spatialExtents.map(async (extent) => {
-          const existingKeyword =
-            extent.description &&
-            (keywords.find(
-              (k) => k.key === extent.description
-            ) as KeywordWithExtent)
-          if (existingKeyword) {
-            existingKeyword._linkedExtent = extent
-            return null
-          }
-          let bbox = null
-          if ('geometry' in extent) {
-            bbox = extent.geometry // FIXME: this should be a bbox too but for now it works...
-          } else if ('bbox' in extent) {
-            bbox = extent.bbox
-          }
-          const label = await firstValueFrom(
-            this.translateService.get('editor.record.placeKeywordWithoutLabel')
-          )
-          return {
-            label,
-            type: 'place',
-            ...(bbox && { bbox }),
-            _linkedExtent: extent,
-            _doNotSave: true,
-          } as KeywordWithExtent
-        })
-      ).then((keywords) => keywords.filter((k) => !!k))
-
-      return [...keywords, ...keywordsFromExtents]
-    }),
     shareReplay(1)
   )
 
-  async handleKeywordDelete(keyword: Keyword) {
-    const spatialExtents = await firstValueFrom(this.spatialExtents$)
-    const shownKeywords = (await firstValueFrom(
-      this.shownKeywords$
-    )) as KeywordWithExtent[]
-    const newKeywords = shownKeywords.filter((k) => k !== keyword)
-    const linkedExtent =
-      '_linkedExtent' in keyword ? keyword._linkedExtent : null
-    const newExtents = linkedExtent
-      ? spatialExtents.filter((extent) => linkedExtent !== extent)
-      : spatialExtents
-    return this.emitChanges(newKeywords, newExtents)
-  }
-
-  async handleKeywordAdd(keyword: Keyword) {
-    const spatialExtents = await firstValueFrom(this.spatialExtents$)
-    const shownKeywords = await firstValueFrom(this.shownKeywords$)
-    const newKeywords = [...shownKeywords, keyword] as KeywordWithExtent[]
-    let newExtents = spatialExtents
-    if (keyword.bbox) {
-      newExtents = [
-        ...spatialExtents,
-        {
-          bbox: keyword.bbox,
-          description: keyword.key ?? undefined,
-        },
-      ]
+  /**
+   * Search function for autocomplete - searches GeoNetwork for extent subtemplates
+   */
+  subtemplateSearchAction = (query: string): Observable<AutocompleteItem[]> => {
+    console.log('Autocomplete search triggered with query:', query)
+    if (!query || query.trim().length < 1) {
+      return new Observable((obs) => {
+        obs.next([])
+        obs.complete()
+      })
     }
-    return this.emitChanges(newKeywords, newExtents)
+
+    return this.subtemplateService.searchExtentSubtemplates(query).pipe(
+      tap((extents) => console.log('Autocomplete received extents:', extents)),
+      map((extents) => {
+        const items = extents.map((extent) => ({
+          title: extent.label,
+          value: extent,
+        }))
+        console.log('Autocomplete items:', items)
+        return items
+      })
+    )
   }
 
-  async emitChanges(
-    placeKeywords: KeywordWithExtent[],
-    spatialExtents: DatasetSpatialExtent[]
-  ) {
-    // some keywords are only present to allow control over extents; they **should not** be saved!
-    const filteredPlaceKeywords = placeKeywords
-      .filter((keyword) => !keyword._doNotSave)
-      .map(
-        ({ label, thesaurus, type }) =>
-          ({
-            label,
-            type,
-            ...(thesaurus && { thesaurus }),
-          }) as Keyword
+  /**
+   * Display function for autocomplete items
+   */
+  displaySubtemplateFn = (item: AutocompleteItem): string => {
+    return item.title
+  }
+
+  /**
+   * Parse JSON extent response and extract bbox, description, geometry
+   * The GeoNetwork API returns JSON representation of XML when we request outputFormat=application/xml
+   */
+  private parseExtentFromJson(jsonData: any): Partial<DatasetSpatialExtent> | null {
+    if (typeof jsonData === 'string') {
+      try {
+        jsonData = JSON.parse(jsonData)
+      } catch (e) {
+        console.error('Failed to parse JSON:', e)
+        return null
+      }
+    }
+
+    const result: Partial<DatasetSpatialExtent> = {}
+
+    // Extract description from gex:description/gco:CharacterString
+    if (jsonData['gex:description']?.['gco:CharacterString']?.['#text']) {
+      result.description = jsonData['gex:description']['gco:CharacterString']['#text']
+    }
+
+    // Extract bbox from gex:EX_GeographicBoundingBox
+    if (jsonData['gex:geographicElement']) {
+      const geoElements = Array.isArray(jsonData['gex:geographicElement'])
+        ? jsonData['gex:geographicElement']
+        : [jsonData['gex:geographicElement']]
+
+      for (const geoElem of geoElements) {
+        if (geoElem['gex:EX_GeographicBoundingBox']) {
+          const bbox = geoElem['gex:EX_GeographicBoundingBox']
+          const west = parseFloat(bbox['gex:westBoundLongitude']?.['gco:Decimal']?.['#text'])
+          const east = parseFloat(bbox['gex:eastBoundLongitude']?.['gco:Decimal']?.['#text'])
+          const south = parseFloat(bbox['gex:southBoundLatitude']?.['gco:Decimal']?.['#text'])
+          const north = parseFloat(bbox['gex:northBoundLatitude']?.['gco:Decimal']?.['#text'])
+
+          if (!isNaN(west) && !isNaN(east) && !isNaN(south) && !isNaN(north)) {
+            result.bbox = [west, south, east, north]
+            console.log('Extracted bbox from JSON:', result.bbox)
+            break  // Use first bbox found
+          }
+        }
+
+        // TODO: Extract geometry from gex:EX_BoundingPolygon if needed
+        // For now, we just use the bbox
+      }
+    }
+
+    return Object.keys(result).length > 0 ? result : null
+  }
+
+  /**
+   * Handle selection of a subtemplate from autocomplete
+   */
+  async handleSubtemplateSelection(item: AutocompleteItem) {
+    console.log('Subtemplate selected:', item)
+    const extent = item.value
+    try {
+      const response = await firstValueFrom(
+        this.subtemplateService.getSubtemplateXml(extent.id)
+      )
+      console.log('Fetched subtemplate response:', response)
+
+      const spatialExtents = await firstValueFrom(this.spatialExtents$)
+
+      // Determine what we have and create extent accordingly
+      let newExtent: DatasetSpatialExtent = {
+        description: extent.label,
+        subtemplateUuid: extent.uuid,
+      }
+
+      // Case 1: We got valid XML
+      if (response && typeof response === 'string' && response.trim().startsWith('<')) {
+        console.log('Using XML response')
+        newExtent.subtemplateXml = response
+      }
+      // Case 2: We got JSON (API returned JSON instead of XML)
+      else if (response && typeof response === 'string' && response.trim().startsWith('{')) {
+        console.log('Received JSON, parsing for bbox and geometry')
+        const parsedData = this.parseExtentFromJson(response)
+        if (parsedData) {
+          // Merge parsed data with base extent
+          newExtent = { ...newExtent, ...parsedData }
+          console.log('Successfully extracted data from JSON:', newExtent)
+        }
+      }
+      // Case 3: No response
+      else {
+        console.warn('No valid response received, using only description and subtemplate UUID')
+      }
+
+      const newExtents = [...spatialExtents, newExtent]
+
+      console.log('Updating record with new extents:', newExtents)
+      this.editorFacade.updateRecordField('spatialExtents', newExtents)
+
+      // Force change detection to update map immediately
+      this.changeDetector.markForCheck()
+
+      // NOTE: Do NOT auto-save here - let user manually save via publish button
+      // this.editorFacade.saveRecord()
+    } catch (error) {
+      console.error('Failed to fetch subtemplate data:', error)
+    }
+  }
+
+  /**
+   * Remove a spatial extent
+   */
+  async removeExtent(extent: DatasetSpatialExtent) {
+    try {
+      const allExtents = await firstValueFrom(this.spatialExtents$)
+      const newExtents = allExtents.filter(
+        (e) => e.description !== extent.description
       )
 
-    const notPlaceKwAndSpatialScopeKw = await firstValueFrom(
-      this.editorFacade.record$.pipe(
-        map((record) =>
-          record.keywords.filter(
-            (k) =>
-              k.type !== 'place' ||
-              SPATIAL_SCOPES.some(
-                (spatialScope) => spatialScope.label === k.label // get back spatialScope keywords
-              )
-          )
-        )
-      )
-    )
+      console.log('Removing extent:', extent.description)
+      this.editorFacade.updateRecordField('spatialExtents', newExtents)
 
-    const allKeywords = [
-      ...notPlaceKwAndSpatialScopeKw,
-      ...filteredPlaceKeywords,
-    ]
+      // Force change detection to update map immediately
+      this.changeDetector.markForCheck()
 
-    this.editorFacade.updateRecordField('keywords', allKeywords)
-    this.editorFacade.updateRecordField('spatialExtents', spatialExtents)
+      this.editorFacade.saveRecord()
+    } catch (error) {
+      console.error('Failed to remove extent:', error)
+    }
+  }
+
+  /**
+   * Handle keyword deletion from thesaurus search
+   */
+  async handleKeywordDelete(keyword: Keyword) {
+    const allKeywords = await firstValueFrom(this.allKeywords$)
+    const newKeywords = allKeywords.filter((k) => k.label !== keyword.label)
+    this.emitChanges(newKeywords)
+  }
+
+  /**
+   * Handle keyword addition from thesaurus search
+   */
+  async handleKeywordAdd(keyword: Keyword) {
+    const allKeywords = await firstValueFrom(this.allKeywords$)
+    const newKeywords = [...allKeywords, keyword]
+    this.emitChanges(newKeywords)
+  }
+
+  /**
+   * Emit changes and save record
+   */
+  emitChanges(keywords: Keyword[]) {
+    this.editorFacade.updateRecordField('keywords', keywords)
+    this.editorFacade.saveRecord()
   }
 }
