@@ -32,7 +32,6 @@ import {
   readTopics,
   readUniqueIdentifier,
   readSpatialExtents,
-  readTemporalExtents,
 } from './read-parts'
 import {
   writeAbstract,
@@ -87,7 +86,6 @@ export class Iso191153Converter extends Iso19139Converter {
     this.readers['topics'] = readTopics
     this.readers['subTopics'] = readsubTopics
     this.readers['spatialExtents'] = readSpatialExtents
-    this.readers['temporalExtents'] = readTemporalExtents
 
     this.writers['uniqueIdentifier'] = writeUniqueIdentifier
     this.writers['kind'] = writeKind
@@ -128,9 +126,7 @@ export class Iso191153Converter extends Iso19139Converter {
     // If document is in CHE format, convert to ISO19115-3 first
     let xmlToRead = document
     if (document.includes('che:CHE_MD_Metadata')) {
-      console.log('Detected CHE format, converting to ISO19115-3...')
       xmlToRead = this.convertFromCheToIso191153(document)
-      console.log('CHE → ISO19115-3 conversion done, xmlToRead:', xmlToRead.substring(0, 200))
     }
     return super.readRecord(xmlToRead)
   }

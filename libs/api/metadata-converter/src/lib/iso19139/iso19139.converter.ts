@@ -377,12 +377,11 @@ export class Iso19139Converter extends BaseConverter<string> {
     fieldChanged('ownerOrganization') &&
       this.writers['ownerOrganization'](record, rootEl)
 
-    fieldChanged('recordUpdated') &&
-      this.writers['recordUpdated'](record, rootEl)
-    fieldChanged('recordCreated') &&
-      this.writers['recordCreated'](record, rootEl)
-    fieldChanged('recordPublished') &&
-      this.writers['recordPublished'](record, rootEl)
+    // CRITICAL: ALWAYS write record dates (metadata creation/update/publication)
+    // These are essential metadata management dates, not optional
+    this.writers['recordUpdated'](record, rootEl)
+    this.writers['recordCreated'](record, rootEl)
+    this.writers['recordPublished'](record, rootEl)
 
     // CRITICAL: ALWAYS write title and abstract for multilingual support
     // MUST be FIRST in identification to maintain ISO19115-3 element ordering
@@ -390,12 +389,11 @@ export class Iso19139Converter extends BaseConverter<string> {
     this.writers['title'](record, rootEl)
     this.writers['abstract'](record, rootEl)
 
-    fieldChanged('resourceCreated') &&
-      this.writers['resourceCreated'](record, rootEl)
-    fieldChanged('resourcePublished') &&
-      this.writers['resourcePublished'](record, rootEl)
-    fieldChanged('resourceUpdated') &&
-      this.writers['resourceUpdated'](record, rootEl)
+    // CRITICAL: ALWAYS write resource dates (creation/update/publication)
+    // These are resource management dates, should always be preserved
+    this.writers['resourceCreated'](record, rootEl)
+    this.writers['resourcePublished'](record, rootEl)
+    this.writers['resourceUpdated'](record, rootEl)
 
     fieldChanged('contactsForResource') &&
       this.writers['contactsForResource'](record, rootEl)
@@ -406,12 +404,11 @@ export class Iso19139Converter extends BaseConverter<string> {
     this.writers['topics'](record, rootEl)
     this.writers['subTopics'](record, rootEl)
 
-    // Write extents BEFORE constraints (ISO19115-3 ordering requirement)
+    // CRITICAL: ALWAYS write extents (spatial/temporal) for dataset identification
+    // These define the geographic and temporal scope of the dataset
     if (record.kind === 'dataset') {
-      fieldChanged('spatialExtents') &&
-        this.writers['spatialExtents'](record, rootEl)
-      fieldChanged('temporalExtents') &&
-        this.writers['temporalExtents'](record, rootEl)
+      this.writers['spatialExtents'](record, rootEl)
+      this.writers['temporalExtents'](record, rootEl)
     }
 
     // resourceConstraints must come AFTER citation, abstract, keywords, topicCategory, extent
