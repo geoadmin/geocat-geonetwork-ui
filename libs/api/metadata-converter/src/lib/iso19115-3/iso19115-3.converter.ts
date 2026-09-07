@@ -2,22 +2,15 @@ import { CatalogRecord } from '@geonetwork-ui/common/domain/model/record'
 import { XmlElement } from '@rgrove/parse-xml'
 import { Iso19139Converter } from '../iso19139'
 import {
-  parseXmlString,
-  getRootElement,
-  xmlToString,
-} from '../xml-utils'
-import {
   writeGraphicOverviews,
-  writeTemporalExtents,
-} from '../iso19139/write-parts'
-import {
   writeLegalConstraints,
   writeLicenses,
   writeOtherConstraints,
   writeSecurityConstraints,
   writeSpatialExtents,
-} from './write-parts'
-import { renameElements } from '../xml-utils'
+  writeTemporalExtents,
+} from '../iso19139/write-parts'
+import { parseXmlString, getRootElement, xmlToString, renameElements } from '../xml-utils'
 import {
   readContacts,
   readContactsForResource,
@@ -35,22 +28,20 @@ import {
   readResourcePublished,
   readResourceUpdated,
   readReuseType,
-  readSpatialExtents,
   readSubTopics,
   readTopics,
   readUniqueIdentifier,
 } from './read-parts'
 import {
   writeAbstract,
-  writeCitationDates,
   writeContacts,
   writeContactsForResource,
   writeDefaultLanguage,
+  writeCitationDates,
   writeKeywords,
   writeKind,
   writeLandingPage,
   writeLineage,
-  writeMetadataMaintenance,
   writeOnlineResources,
   writeOtherLanguages,
   writeRecordCreated,
@@ -92,8 +83,7 @@ export class Iso191153Converter extends Iso19139Converter {
     this.readers['otherLanguages'] = readOtherLanguages
     this.readers['reuseType'] = readReuseType
     this.readers['topics'] = readTopics
-    this.readers['subTopics'] = readSubTopics
-    this.readers['spatialExtents'] = readSpatialExtents
+    this.readers['subtopics'] = readSubTopics
 
     this.writers['uniqueIdentifier'] = writeUniqueIdentifier
     this.writers['kind'] = writeKind
@@ -105,7 +95,6 @@ export class Iso191153Converter extends Iso19139Converter {
     this.writers['resourceUpdated'] = writeResourceUpdated
     this.writers['resourceCreated'] = writeResourceCreated
     this.writers['resourcePublished'] = writeResourcePublished
-    this.writers['citationDates'] = writeCitationDates
     this.writers['resourceIdentifiers'] = writeResourceIdentifier
     this.writers['reuseType'] = writeReuseType
     this.writers['contacts'] = writeContacts
@@ -113,7 +102,7 @@ export class Iso191153Converter extends Iso19139Converter {
     this.writers['ownerOrganization'] = () => undefined // fixme: find a way to store this value properly
     this.writers['keywords'] = writeKeywords
     this.writers['topics'] = writeTopicsISO19115
-    this.writers['subTopics'] = writeSubTopicCategories
+    this.writers['subtopics'] = writeSubTopicCategories
     this.writers['licenses'] = writeLicenses
     this.writers['legalConstraints'] = writeLegalConstraints
     this.writers['securityConstraints'] = writeSecurityConstraints
@@ -246,12 +235,6 @@ export class Iso191153Converter extends Iso19139Converter {
       // Add citation date for Schematron CHE requirement
       // Uses recordCreated (metadata creation date) to satisfy "date de citation" requirement
       writeCitationDates(record, rootEl)
-
-      // Add metadata maintenance information in mdb:metadataMaintenance
-      // This is required by ISO19115-3.2018.che for proper schema validation
-      if (record.updateFrequency) {
-        writeMetadataMaintenance(record as any, rootEl)
-      }
     }
 
     // Convert back to string after adding new elements

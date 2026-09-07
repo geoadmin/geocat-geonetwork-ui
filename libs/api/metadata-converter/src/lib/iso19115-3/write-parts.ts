@@ -376,9 +376,9 @@ export function writeRecordPublished(
 function removeResourceDate(type: 'revision' | 'creation' | 'publication') {
   return pipe(
     findOrCreateIdentification(),
-    // Search for cit:date directly under identification, NOT under citation!
-    (identEl: XmlElement) => {
-      const dateLists = allChildrenElement(identEl).filter(
+    findNestedChildOrCreate('mri:citation', 'cit:CI_Citation'),
+    (citationEl: XmlElement) => {
+      const dateLists = allChildrenElement(citationEl).filter(
         (child) => child.name === 'cit:date'
       )
       const toRemove: XmlElement[] = []
@@ -401,13 +401,13 @@ function removeResourceDate(type: 'revision' | 'creation' | 'publication') {
 
       // Remove in reverse order to preserve indices
       toRemove.reverse().forEach((el) => {
-        const idx = identEl.children.indexOf(el)
+        const idx = citationEl.children.indexOf(el)
         if (idx > -1) {
-          identEl.children.splice(idx, 1)
+          citationEl.children.splice(idx, 1)
         }
       })
 
-      return identEl
+      return citationEl
     }
   )
 }
@@ -418,8 +418,7 @@ function appendResourceDate(
 ) {
   return pipe(
     findIdentification19115(),
-    // Add cit:date directly under identification, NOT under citation!
-    // ISO19115-3 structure: identification/cit:date (NOT citation/cit:date)
+    findNestedElement('mri:citation', 'cit:CI_Citation'),
     appendChildren(
       pipe(
         createElement('cit:date'),
@@ -916,36 +915,22 @@ export function writeTitle(record: CatalogRecord, rootEl: XmlElement) {
     return
   }
 
-  const citCitationEl = pipe(
+  pipe(
     findOrCreateIdentification(),
     (identEl: XmlElement) => {
       const citationEl = findChildOrCreate('mri:citation')(identEl)
-      return findChildOrCreate('cit:CI_Citation')(citationEl)
-    }
-  )(rootEl)
-
-  if (!citCitationEl) return
-
-  // REMOVE existing title element to avoid duplicates
-  removeChildrenByName('cit:title')(citCitationEl)
-
-  // Create title element
-  const titleEl = createElement('cit:title')()
-
-  // Insert at BEGINNING of children array to maintain XML schema order
-  // (title must come before date, identifier, etc.)
-  citCitationEl.children = citCitationEl.children || []
-  citCitationEl.children.unshift(titleEl)
-  titleEl.parent = citCitationEl
-
-  // Now write the title content
-  pipe(
+      const citCitationEl = findChildOrCreate('cit:CI_Citation')(citationEl)
+      // REMOVE existing title element to avoid duplicates
+      removeChildrenByName('cit:title')(citCitationEl)
+      return citCitationEl
+    },
+    createChild('cit:title'),
     writeLocalizedCharacterString19115(
       record.title,
       record.translations?.title,
       record.defaultLanguage
     )
-  )(titleEl)
+  )(rootEl)
 }
 
 /**
@@ -1018,75 +1003,6 @@ export function writeUpdateFrequency(
     )(maintenanceEl)
   }
 }
-
-/**
- * Write metadata maintenance frequency (not resource maintenance)
- * Structure: mdb:metadataMaintenance/che:CHE_MD_MaintenanceInformation/mmi:maintenanceAndUpdateFrequency
- * This is required by ISO19115-3.2018.che for dataset, series, and service records
- */
-export function writeMetadataMaintenance(
-  record: DatasetRecord,
-  rootEl: XmlElement
-) {
-  // Skip if no update frequency defined
-  if (!record.updateFrequency) {
-    return
-  }
-
-  const metadataMaintenanceEl = findChildOrCreate('mdb:metadataMaintenance')(rootEl)
-  if (!metadataMaintenanceEl) return
-
-  // CRITICAL: Remove ALL existing maintenance information elements to avoid duplicates
-  // The parent converter may have created mmi:MD_MaintenanceInformation elements
-  // We replace them all with a single CHE variant
-  removeChildrenByName('mmi:MD_MaintenanceInformation')(metadataMaintenanceEl)
-  removeChildrenByName('che:CHE_MD_MaintenanceInformation')(metadataMaintenanceEl)
-
-  // Create ONLY the CHE variant with gco:isoType attribute
-  const cheMaintenanceEl = pipe(
-    createElement('che:CHE_MD_MaintenanceInformation'),
-    (el: XmlElement) => {
-      writeAttribute('gco:isoType', 'mmi:MD_MaintenanceInformation')(el)
-      return el
-    }
-  )()
-
-  // Remove existing frequency elements from the CHE element
-  removeChildrenByName('mmi:maintenanceAndUpdateFrequency')(cheMaintenanceEl)
-  removeChildrenByName('mmi:userDefinedMaintenanceFrequency')(cheMaintenanceEl)
-
-  if (typeof record.updateFrequency === 'object') {
-    // User-defined maintenance frequency with ISO 8601 duration
-    appendChildren(
-      pipe(
-        createElement('mmi:userDefinedMaintenanceFrequency'),
-        createChild('gco:TM_PeriodDuration'),
-        setTextContent(getISODuration(record.updateFrequency))
-      )
-    )(cheMaintenanceEl)
-  } else {
-    // Standard maintenance frequency code
-    const freqStr = typeof record.updateFrequency === 'string' ? record.updateFrequency : 'unknown'
-    appendChildren(
-      pipe(
-        createElement('mmi:maintenanceAndUpdateFrequency'),
-        createChild('mmi:MD_MaintenanceFrequencyCode'),
-        writeAttribute(
-          'codeList',
-          'https://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#MD_MaintenanceFrequencyCode'
-        ),
-        writeAttribute('codeListValue', freqStr),
-        setTextContent(freqStr)
-      )
-    )(cheMaintenanceEl)
-  }
-
-  // Add the CHE element to mdb:metadataMaintenance
-  if (!metadataMaintenanceEl.children) metadataMaintenanceEl.children = []
-  metadataMaintenanceEl.children.push(cheMaintenanceEl)
-  cheMaintenanceEl.parent = metadataMaintenanceEl
-}
-
 
 /**
  * ISO19115-3 override: Write resource identifier (first one) to citation
@@ -1314,10 +1230,10 @@ export function writeSubTopicCategories(
   // Remove existing sub-topic categories
   removeChildrenByName('che:subTopicCategory')(identification)
 
-  // Add new ones if present in record - use subTopics, NOT topics
-  if (record.subTopics && record.subTopics.length > 0) {
+  // Add new ones if present in record - use subtopics, NOT topics
+  if (record.subtopics && record.subtopics.length > 0) {
     appendChildren(
-      ...record.subTopics.map((subTopic) =>
+      ...record.subtopics.map((subTopic) =>
         pipe(
           createElement('che:subTopicCategory'),
           appendChildren(
@@ -1327,7 +1243,8 @@ export function writeSubTopicCategories(
                 'codeList',
                 'http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CHE_MD_SubTopicCategoryCode'
               ),
-              writeAttribute('codeListValue', subTopic)
+              writeAttribute('codeListValue', subTopic),
+              setTextContent(subTopic)
             )
           )
         )
