@@ -359,9 +359,14 @@ function extractResourceDateInfo(
     const identification = findIdentification19115()(rootEl)
     if (!identification) return null
 
-    // ISO19115-3: cit:date is directly under identification, NOT under citation!
-    // Find all cit:date elements at identification level
-    const dateLists = allChildrenElement(identification).filter(
+    const citation = findChildElement('mri:citation')(identification)
+    if (!citation) return null
+
+    const ciCitation = findChildElement('cit:CI_Citation')(citation)
+    if (!ciCitation) return null
+
+    // Find all cit:date elements in the citation
+    const dateLists = allChildrenElement(ciCitation).filter(
       (child) => child.name === 'cit:date'
     )
 
@@ -450,8 +455,8 @@ export function readSubTopics(rootEl: XmlElement): string[] {
   return subTopicEls
     .map((el) => {
       const codeEl = findChildElement('che:CHE_MD_SubTopicCategoryCode')(el)
-      // Read the codeListValue attribute (CHE_MD_SubTopicCategoryCode is self-closing)
-      return codeEl ? readAttribute('codeListValue')(codeEl) : null
+      // The text content is directly in the che:CHE_MD_SubTopicCategoryCode element
+      return codeEl ? readText()(codeEl) : null
     })
     .filter((v) => v) as string[]
 }
