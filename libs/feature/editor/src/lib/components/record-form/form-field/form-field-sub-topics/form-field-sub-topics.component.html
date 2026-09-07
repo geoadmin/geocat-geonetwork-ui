@@ -2,10 +2,10 @@
   <div class="flex flex-col gap-4">
     <gn-ui-dropdown-multiselect
       class="w-full"
-      [title]="'editor.record.form.subtopics.placeholder' | translate"
+      [title]="'editor.record.form.subTopics.placeholder' | translate"
       [maxRows]="6"
       [selected]="subTopics"
-      [choices]="availableSubTopics || []"
+      [choices]="availablesubTopics || []"
       [allowSearch]="true"
       (selectValues)="handleItemSelection($event)"
     >

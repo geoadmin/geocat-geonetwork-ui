@@ -488,76 +488,76 @@ marker('editor.record.form.topics.inspire.waters')
 export const CHE_SUB_TOPICS: Array<{ value: string; label: string }> = [
   {
     value: 'imageryBaseMapsEarthCover_BaseMaps',
-    label: 'editor.record.form.subtopics.che.a1_basemaps',
+    label: 'editor.record.form.subTopics.che.a1_basemaps',
   },
   {
     value: 'imageryBaseMapsEarthCover_EarthCover',
-    label: 'editor.record.form.subtopics.che.a2_earthcover',
+    label: 'editor.record.form.subTopics.che.a2_earthcover',
   },
   {
     value: 'imageryBaseMapsEarthCover_Imagery',
-    label: 'editor.record.form.subtopics.che.a3_imagery',
+    label: 'editor.record.form.subTopics.che.a3_imagery',
   },
   {
     value: 'planningCadastre_Planning',
-    label: 'editor.record.form.subtopics.che.e1_planning',
+    label: 'editor.record.form.subTopics.che.e1_planning',
   },
   {
     value: 'planningCadastre_Cadastre',
-    label: 'editor.record.form.subtopics.che.e2_cadastre',
+    label: 'editor.record.form.subTopics.che.e2_cadastre',
   },
   {
     value: 'geoscientificInformation_Geology',
-    label: 'editor.record.form.subtopics.che.f1_geology',
+    label: 'editor.record.form.subTopics.che.f1_geology',
   },
   {
     value: 'geoscientificInformation_Soils',
-    label: 'editor.record.form.subtopics.che.f2_soils',
+    label: 'editor.record.form.subTopics.che.f2_soils',
   },
   {
     value: 'geoscientificInformation_NaturalHazards',
-    label: 'editor.record.form.subtopics.che.f3_naturalhazards',
+    label: 'editor.record.form.subTopics.che.f3_naturalhazards',
   },
   {
     value: 'environment_EnvironmentalProtection',
-    label: 'editor.record.form.subtopics.che.l1_envprotection',
+    label: 'editor.record.form.subTopics.che.l1_envprotection',
   },
   {
     value: 'environment_NatureProtection',
-    label: 'editor.record.form.subtopics.che.l2_natureprotection',
+    label: 'editor.record.form.subTopics.che.l2_natureprotection',
   },
   {
     value: 'utilitiesCommunication_Energy',
-    label: 'editor.record.form.subtopics.che.q1_energy',
+    label: 'editor.record.form.subTopics.che.q1_energy',
   },
   {
     value: 'utilitiesCommunication_Utilities',
-    label: 'editor.record.form.subtopics.che.q2_utilities',
+    label: 'editor.record.form.subTopics.che.q2_utilities',
   },
   {
     value: 'utilitiesCommunication_Communication',
-    label: 'editor.record.form.subtopics.che.q3_communication',
+    label: 'editor.record.form.subTopics.che.q3_communication',
   },
 ]
 
-marker('editor.record.form.subtopics.che.agriculture')
-marker('editor.record.form.subtopics.che.biodiversity')
-marker('editor.record.form.subtopics.che.climatology')
-marker('editor.record.form.subtopics.che.environment')
-marker('editor.record.form.subtopics.che.forests')
-marker('editor.record.form.subtopics.che.geography')
-marker('editor.record.form.subtopics.che.geology')
-marker('editor.record.form.subtopics.che.geomorphology')
-marker('editor.record.form.subtopics.che.health')
-marker('editor.record.form.subtopics.che.hydrology')
-marker('editor.record.form.subtopics.che.imagery')
-marker('editor.record.form.subtopics.che.land')
-marker('editor.record.form.subtopics.che.lakes')
-marker('editor.record.form.subtopics.che.mountains')
-marker('editor.record.form.subtopics.che.planning')
-marker('editor.record.form.subtopics.che.protected_areas')
-marker('editor.record.form.subtopics.che.sea')
-marker('editor.record.form.subtopics.che.sediments')
-marker('editor.record.form.subtopics.che.soils')
-marker('editor.record.form.subtopics.che.utilities')
-marker('editor.record.form.subtopics.che.waste')
+marker('editor.record.form.subTopics.che.agriculture')
+marker('editor.record.form.subTopics.che.biodiversity')
+marker('editor.record.form.subTopics.che.climatology')
+marker('editor.record.form.subTopics.che.environment')
+marker('editor.record.form.subTopics.che.forests')
+marker('editor.record.form.subTopics.che.geography')
+marker('editor.record.form.subTopics.che.geology')
+marker('editor.record.form.subTopics.che.geomorphology')
+marker('editor.record.form.subTopics.che.health')
+marker('editor.record.form.subTopics.che.hydrology')
+marker('editor.record.form.subTopics.che.imagery')
+marker('editor.record.form.subTopics.che.land')
+marker('editor.record.form.subTopics.che.lakes')
+marker('editor.record.form.subTopics.che.mountains')
+marker('editor.record.form.subTopics.che.planning')
+marker('editor.record.form.subTopics.che.protected_areas')
+marker('editor.record.form.subTopics.che.sea')
+marker('editor.record.form.subTopics.che.sediments')
+marker('editor.record.form.subTopics.che.soils')
+marker('editor.record.form.subTopics.che.utilities')
+marker('editor.record.form.subTopics.che.waste')

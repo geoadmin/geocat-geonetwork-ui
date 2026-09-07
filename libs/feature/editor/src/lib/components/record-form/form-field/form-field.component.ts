@@ -47,7 +47,7 @@ import { FormFieldConstraintsComponent } from './form-field-constraints/form-fie
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { FormFieldSpatialToggleComponent } from './form-field-spatial-toggle/form-field-spatial-toggle.component'
 import { FormFieldTopicsComponent } from './form-field-topics/form-field-topics.component'
-import { FormFieldSubTopicsComponent } from './form-field-sub-topics/form-field-sub-topics.component'
+import { FormFieldsubTopicsComponent } from './form-field-sub-topics/form-field-sub-topics.component'
 import { FormFieldTitleMultilingualComponent } from './form-field-title-multilingual/form-field-title-multilingual.component'
 import { FormFieldAbstractMultilingualComponent } from './form-field-abstract-multilingual/form-field-abstract-multilingual.component'
 
@@ -78,7 +78,7 @@ import { FormFieldAbstractMultilingualComponent } from './form-field-abstract-mu
     FormFieldConstraintsShortcutsComponent,
     FormFieldSpatialToggleComponent,
     FormFieldTopicsComponent,
-    FormFieldSubTopicsComponent,
+    FormFieldsubTopicsComponent,
     FormFieldTitleMultilingualComponent,
     FormFieldAbstractMultilingualComponent,
     TextFieldModule,
@@ -145,7 +145,7 @@ export class FormFieldComponent {
   get valueAsTopics() {
     return this.value as Array<string>
   }
-  get valueAsSubTopics() {
+  get valueAssubTopics() {
     return this.value as Array<string>
   }
   get valueAsConstraints() {

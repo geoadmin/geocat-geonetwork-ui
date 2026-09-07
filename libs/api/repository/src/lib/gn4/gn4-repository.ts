@@ -32,6 +32,7 @@ import { PlatformServiceInterface } from '@geonetwork-ui/common/domain/platform.
 import { RecordsRepositoryInterface } from '@geonetwork-ui/common/domain/repository/records-repository.interface'
 import {
   LanguagesApiService,
+  ProcessesApiService,
   RecordsApiService,
   SearchApiService,
 } from '@geonetwork-ui/data-access/gn4'
@@ -65,6 +66,7 @@ export class Gn4Repository implements RecordsRepositoryInterface {
   private gn4SearchHelper = inject(ElasticsearchService)
   private gn4Mapper = inject(Gn4Converter)
   private gn4RecordsApi = inject(RecordsApiService)
+  private gn4ProcessesApi = inject(ProcessesApiService)
   private platformService = inject(PlatformServiceInterface)
   private gn4LanguagesApi = inject(LanguagesApiService)
   private settingsService = inject(Gn4SettingsService)
@@ -436,6 +438,7 @@ export class Gn4Repository implements RecordsRepositoryInterface {
       }),
       switchMap(() => this.serializeRecordToXml(record, referenceRecordSource)),
       switchMap((recordXml) => {
+        console.log('About to send XML to backend:', recordXml.substring(0, 500))
         // Extract groupOwner from extras (for duplication/creation to work properly)
         const groupOwner = record.extras?.['groupOwner'] as string | undefined
         return this.gn4RecordsApi.insert(
@@ -456,9 +459,16 @@ export class Gn4Repository implements RecordsRepositoryInterface {
           recordXml
         )
       }),
-      map((response) => {
+      switchMap((response) => {
+        console.log('Backend response:', response)
         const metadataId = Object.keys(response.metadataInfos)[0]
-        return response.metadataInfos[metadataId][0].uuid
+        const uuid = response.metadataInfos[metadataId][0].uuid
+
+        // Index the metadata so it appears in search results with document field
+        return this.gn4ProcessesApi.processRecords('index', [uuid]).pipe(
+          map(() => uuid),
+          catchError(() => of(uuid)) // Continue even if indexing fails
+        )
       })
     )
   }
@@ -603,7 +613,11 @@ export class Gn4Repository implements RecordsRepositoryInterface {
         { httpHeaderAccept: 'text/xml,application/xml' as 'application/xml' } // this is to make sure that the response is parsed as text
       )
       .pipe(
-        map((response) => response.body),
+        map((response) => {
+          const xml = response.body
+          console.log('getRecordAsXml returned:', xml?.substring(0, 200))
+          return xml
+        }),
         catchError((error: HttpErrorResponse) =>
           error.status === 404 ? of(null) : throwError(() => error)
         )

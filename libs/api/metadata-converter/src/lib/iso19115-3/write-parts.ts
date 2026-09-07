@@ -1230,10 +1230,10 @@ export function writeSubTopicCategories(
   // Remove existing sub-topic categories
   removeChildrenByName('che:subTopicCategory')(identification)
 
-  // Add new ones if present in record - use subtopics, NOT topics
-  if (record.subtopics && record.subtopics.length > 0) {
+  // Add new ones if present in record - use subTopics, NOT topics
+  if (record.subTopics && record.subTopics.length > 0) {
     appendChildren(
-      ...record.subtopics.map((subTopic) =>
+      ...record.subTopics.map((subTopic) =>
         pipe(
           createElement('che:subTopicCategory'),
           appendChildren(

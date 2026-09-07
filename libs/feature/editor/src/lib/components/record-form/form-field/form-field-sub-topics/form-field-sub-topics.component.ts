@@ -14,7 +14,7 @@ import { CHE_SUB_TOPICS } from '../../../../fields.config'
   templateUrl: './form-field-sub-topics.component.html',
   styleUrl: './form-field-sub-topics.component.css',
 })
-export class FormFieldSubTopicsComponent {
+export class FormFieldsubTopicsComponent {
   private translateService = inject(TranslateService)
 
   subTopics: string[] = []
@@ -22,15 +22,15 @@ export class FormFieldSubTopicsComponent {
     this.subTopics = subTopics || []
   }
   @Output() valueChange: EventEmitter<string[]> = new EventEmitter()
-  availableSubTopics = CHE_SUB_TOPICS.map((topic) => {
+  availablesubTopics = CHE_SUB_TOPICS.map((topic) => {
     return {
       label: this.translateService.instant(topic.label),
       value: topic.value,
     }
   })
 
-  handleItemSelection(selectedItems: string[]) {
-    this.subTopics = selectedItems
+  handleItemSelection(selectedItems: unknown[]) {
+    this.subTopics = (selectedItems as string[]).filter((item) => typeof item === 'string')
     this.valueChange.emit(this.subTopics)
   }
 
@@ -40,7 +40,7 @@ export class FormFieldSubTopicsComponent {
   }
 
   getTranslatedSubTopic(subTopic: string) {
-    const topicKey = this.availableSubTopics.find(
+    const topicKey = this.availablesubTopics.find(
       (avail) => avail.value === subTopic
     )?.label
     return topicKey ? this.translateService.instant(topicKey) : ''

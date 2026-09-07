@@ -28,9 +28,11 @@ import {
   readResourcePublished,
   readResourceUpdated,
   readReuseType,
-  readSubTopics,
+  readsubTopics,
   readTopics,
   readUniqueIdentifier,
+  readSpatialExtents,
+  readTemporalExtents,
 } from './read-parts'
 import {
   writeAbstract,
@@ -83,7 +85,9 @@ export class Iso191153Converter extends Iso19139Converter {
     this.readers['otherLanguages'] = readOtherLanguages
     this.readers['reuseType'] = readReuseType
     this.readers['topics'] = readTopics
-    this.readers['subtopics'] = readSubTopics
+    this.readers['subTopics'] = readsubTopics
+    this.readers['spatialExtents'] = readSpatialExtents
+    this.readers['temporalExtents'] = readTemporalExtents
 
     this.writers['uniqueIdentifier'] = writeUniqueIdentifier
     this.writers['kind'] = writeKind
@@ -102,7 +106,7 @@ export class Iso191153Converter extends Iso19139Converter {
     this.writers['ownerOrganization'] = () => undefined // fixme: find a way to store this value properly
     this.writers['keywords'] = writeKeywords
     this.writers['topics'] = writeTopicsISO19115
-    this.writers['subtopics'] = writeSubTopicCategories
+    this.writers['subTopics'] = writeSubTopicCategories
     this.writers['licenses'] = writeLicenses
     this.writers['legalConstraints'] = writeLegalConstraints
     this.writers['securityConstraints'] = writeSecurityConstraints
@@ -118,6 +122,82 @@ export class Iso191153Converter extends Iso19139Converter {
     this.writers['landingPage'] = writeLandingPage
     this.writers['defaultLanguage'] = writeDefaultLanguage
     this.writers['otherLanguages'] = writeOtherLanguages
+  }
+
+  async readRecord(document: string): Promise<CatalogRecord> {
+    // If document is in CHE format, convert to ISO19115-3 first
+    let xmlToRead = document
+    if (document.includes('che:CHE_MD_Metadata')) {
+      console.log('Detected CHE format, converting to ISO19115-3...')
+      xmlToRead = this.convertFromCheToIso191153(document)
+      console.log('CHE → ISO19115-3 conversion done, xmlToRead:', xmlToRead.substring(0, 200))
+    }
+    return super.readRecord(xmlToRead)
+  }
+
+  private convertFromCheToIso191153(xml: string): string {
+    let result = xml
+
+    // Convert CHE elements back to ISO19115-3 standard namespaces
+    result = result.replace(
+      /<che:CHE_MD_Metadata([^>]*?)>/g,
+      (match, attrs) => {
+        // Remove gco:isoType attribute if present
+        const cleanAttrs = attrs.replace(/\s*gco:isoType="[^"]*"/g, '')
+        return `<mdb:MD_Metadata${cleanAttrs}>`
+      }
+    )
+    result = result.replace(/<\/che:CHE_MD_Metadata>/g, '</mdb:MD_Metadata>')
+
+    result = result.replace(
+      /<che:CHE_MD_DataIdentification([^>]*?)>/g,
+      (match, attrs) => {
+        const cleanAttrs = attrs.replace(/\s*gco:isoType="[^"]*"/g, '')
+        return `<mri:MD_DataIdentification${cleanAttrs}>`
+      }
+    )
+    result = result.replace(
+      /<\/che:CHE_MD_DataIdentification>/g,
+      '</mri:MD_DataIdentification>'
+    )
+
+    result = result.replace(
+      /<che:CHE_MD_LegalConstraints([^>]*?)>/g,
+      (match, attrs) => {
+        const cleanAttrs = attrs.replace(/\s*gco:isoType="[^"]*"/g, '')
+        return `<mco:MD_LegalConstraints${cleanAttrs}>`
+      }
+    )
+    result = result.replace(
+      /<\/che:CHE_MD_LegalConstraints>/g,
+      '</mco:MD_LegalConstraints>'
+    )
+
+    result = result.replace(
+      /<che:CHE_MD_MaintenanceInformation([^>]*?)>/g,
+      (match, attrs) => {
+        const cleanAttrs = attrs.replace(/\s*gco:isoType="[^"]*"/g, '')
+        return `<mmi:MD_MaintenanceInformation${cleanAttrs}>`
+      }
+    )
+    result = result.replace(
+      /<\/che:CHE_MD_MaintenanceInformation>/g,
+      '</mmi:MD_MaintenanceInformation>'
+    )
+
+    result = result.replace(
+      /<che:CHE_CI_Organisation([^>]*?)>/g,
+      (match, attrs) => {
+        const cleanAttrs = attrs.replace(/\s*gco:isoType="[^"]*"/g, '')
+        return `<cit:CI_Organisation${cleanAttrs}>`
+      }
+    )
+    result = result.replace(
+      /<\/che:CHE_CI_Organisation>/g,
+      '</cit:CI_Organisation>'
+    )
+
+    return result
   }
 
   beforeDocumentCreation(rootEl: XmlElement) {

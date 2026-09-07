@@ -443,7 +443,7 @@ export function readTopics(rootEl: XmlElement): string[] {
     .filter((v) => v) as string[]
 }
 
-export function readSubTopics(rootEl: XmlElement): string[] {
+export function readsubTopics(rootEl: XmlElement): string[] {
   const identification = findIdentification()(rootEl)
   if (!identification) return []
 

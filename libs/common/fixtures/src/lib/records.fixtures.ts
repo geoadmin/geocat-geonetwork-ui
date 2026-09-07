@@ -845,6 +845,7 @@ export const simpleServiceRecordFixture = (): ServiceRecord => ({
   keywords: [],
   topics: [],
   subTopics: [],
+  status: 'completed',
   spatialExtents: [],
   overviews: [],
   defaultLanguage: null,
