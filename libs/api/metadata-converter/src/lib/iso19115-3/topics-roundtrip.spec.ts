@@ -1,10 +1,10 @@
 /**
- * Test topics and subtopics round-trip: write → read cycle
+ * Test topics and subTopics round-trip: write → read cycle
  */
 import { Iso191153Converter } from './iso19115-3.converter'
 import { GENERIC_DATASET_RECORD } from '../fixtures/generic.records'
 
-describe('Topics and SubTopics Round-trip', () => {
+describe('Topics and subTopics Round-trip', () => {
   let converter: Iso191153Converter
 
   beforeEach(() => {
@@ -12,7 +12,7 @@ describe('Topics and SubTopics Round-trip', () => {
   })
 
   it('writes and reads topics correctly', async () => {
-    // Create a record with topics and subtopics
+    // Create a record with topics and subTopics
     const record = {
       ...GENERIC_DATASET_RECORD,
       topics: ['biota', 'environment'],
@@ -25,13 +25,13 @@ describe('Topics and SubTopics Round-trip', () => {
     // Read back
     const readRecord = await converter.readRecord(xml)
 
-    // Verify topics and subtopics are preserved
+    // Verify topics and subTopics are preserved
     expect(readRecord.topics).toEqual(['biota', 'environment'])
     expect(readRecord.subTopics).toEqual(['species', 'habitat'])
   })
 
-  it('handles empty topics and subtopics', async () => {
-    // Create a record without topics and subtopics
+  it('handles empty topics and subTopics', async () => {
+    // Create a record without topics and subTopics
     const record = {
       ...GENERIC_DATASET_RECORD,
       topics: [],
@@ -50,8 +50,8 @@ describe('Topics and SubTopics Round-trip', () => {
     expect(readRecord.subTopics === undefined || readRecord.subTopics?.length === 0).toBe(true)
   })
 
-  it('handles missing subtopics (undefined)', async () => {
-    // Create a record without subtopics (they don't exist in the record at all)
+  it('handles missing subTopics (undefined)', async () => {
+    // Create a record without subTopics (they don't exist in the record at all)
     const record = {
       ...GENERIC_DATASET_RECORD,
       topics: ['agriculture'],

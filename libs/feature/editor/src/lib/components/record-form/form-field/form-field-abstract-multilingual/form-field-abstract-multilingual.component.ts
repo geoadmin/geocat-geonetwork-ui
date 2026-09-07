@@ -11,6 +11,7 @@ import { CommonModule } from '@angular/common'
 import { HttpClientModule } from '@angular/common/http'
 import { MatButtonModule } from '@angular/material/button'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { forkJoin } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { RecordTranslations, LanguageCode } from '@geonetwork-ui/common/domain/model/record'
 import { FormFieldRichComponent } from '../form-field-rich/form-field-rich.component'
@@ -191,23 +192,27 @@ export class FormFieldAbstractMultilingualComponent {
       return
     }
 
-    this.deepLService.translateText(this.value, this.defaultLanguage, otherLangs.length > 0 ? otherLangs : allLanguages).subscribe({
-      next: (translations) => {
-        let allTranslations = { ...translations }
+    // Use forkJoin to handle multiple parallel translation requests
+    const combinedObservable = observables.length === 1 ? observables[0] : forkJoin(observables)
 
-        // If we have Romansh, also translate from German
-        if (romanshLangs.length > 0) {
-          this.deepLService.translateText(this.value, 'de' as LanguageCode, romanshLangs).subscribe({
-            next: (romanshTranslations) => {
-              allTranslations = { ...allTranslations, ...romanshTranslations }
-              this.applyTranslationsWithWarning(allLanguages, allTranslations)
-            },
-          })
+    combinedObservable.subscribe({
+      next: (results: any) => {
+        // Merge results from potentially multiple observables
+        let allTranslations: { [lang: string]: string } = {}
+
+        if (observables.length === 1) {
+          allTranslations = results
         } else {
-          this.applyTranslationsWithWarning(allLanguages, allTranslations)
+          // Combine results from multiple observables (other langs + romansh)
+          results.forEach((translationSet: any) => {
+            allTranslations = { ...allTranslations, ...translationSet }
+          })
         }
+
+        this.applyTranslationsWithWarning(allLanguages, allTranslations)
       },
-      error: (error) => {
+      error: (error: any) => {
+        console.error('DeepL translation error:', error)
         this.isTranslating = false
         this.cdr.markForCheck()
       },

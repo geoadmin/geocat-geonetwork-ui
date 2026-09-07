@@ -130,7 +130,7 @@ export interface BaseRecord {
   recordUpdated: Date
   kind: RecordKind
   topics: Array<string> // TODO: handle codelists
-  subtopics: Array<string> // TODO: handle codelists
+  subTopics: Array<string> // TODO: handle codelists
   keywords: Array<Keyword>
   licenses: Array<Constraint>
   legalConstraints: Array<Constraint>

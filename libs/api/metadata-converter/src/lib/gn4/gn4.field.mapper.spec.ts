@@ -220,7 +220,7 @@ describe('Gn4FieldMapper', () => {
           const result = mappingFn(output, source)
           expect(result).toEqual({ status: 'completed', extras: { cl_statusObject: { key: 'completed', default: 'Finalisé', langfre: 'Finalisé', link: 'http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_ProgressCode' } } })
         })
-        it('cl_subTopicCategory - should return a function that maps subtopics', () => {
+        it('cl_subTopicCategory - should return a function that maps subTopics', () => {
           translateService.currentLang = 'de'
           const fieldName = 'cl_subTopicCategory'
           const mappingFn = service.getMappingFn(fieldName)
@@ -233,7 +233,7 @@ describe('Gn4FieldMapper', () => {
           }
           const result = mappingFn(output, source)
           expect(result).toEqual({
-            subtopics: ['Unterthema 1', 'Unterthema 2'],
+            subTopics: ['Unterthema 1', 'Unterthema 2'],
           })
         })
         it('MD_LegalConstraintsOtherConstraintsObject - should store in extras and add to legalConstraints', () => {

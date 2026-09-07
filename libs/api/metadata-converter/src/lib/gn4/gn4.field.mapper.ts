@@ -141,8 +141,8 @@ export class Gn4FieldMapper {
     }),
     cl_subTopicCategory: (output, source) => ({
       ...output,
-      subtopics: [
-        ...(output.subtopics || []),
+      subTopics: [
+        ...(output.subTopics || []),
         ...getAsArray(
           selectField<SourceWithUnknownProps[]>(source, 'cl_subTopicCategory')
         ).map((subtopic) =>

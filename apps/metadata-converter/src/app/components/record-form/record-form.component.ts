@@ -4,6 +4,7 @@ import {
   EventEmitter,
   Input,
   Output,
+  OnInit,
 } from '@angular/core'
 import {
   CatalogRecord,
@@ -20,7 +21,7 @@ import {
   styleUrls: ['./record-form.component.css'],
   standalone: false,
 })
-export class RecordFormComponent implements AfterViewInit {
+export class RecordFormComponent implements AfterViewInit, OnInit {
   @Input() record: CatalogRecord
   @Output() recordChanged = new EventEmitter<CatalogRecord>()
 
@@ -35,7 +36,15 @@ export class RecordFormComponent implements AfterViewInit {
   }
 
   constructor() {
-    this.switchToRecordKind('dataset')
+    // Don't modify @Input() record here - it hasn't been assigned yet
+  }
+
+  ngOnInit() {
+    // Only call switchToRecordKind if record is not already defined
+    // (e.g., for new records)
+    if (!this.record) {
+      this.switchToRecordKind('dataset')
+    }
   }
 
   ngAfterViewInit() {
@@ -118,6 +127,7 @@ export class RecordFormComponent implements AfterViewInit {
       this.record = {
         ...record,
         kind: 'service',
+        status: 'operational',
         spatialExtents: [],
       }
     }
