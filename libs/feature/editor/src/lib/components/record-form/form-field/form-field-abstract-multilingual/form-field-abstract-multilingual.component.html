@@ -1,5 +1,5 @@
 <div class="flex flex-col gap-4 w-full">
-  <!-- Abstract principal (défaut) -->
+  <!-- Principal abstract (default) -->
   <div class="flex flex-col gap-3">
     <div class="flex flex-row justify-between items-center gap-3">
       <h3 class="text-base font-semibold text-gray-900">{{ label }}</h3>
@@ -9,25 +9,25 @@
           type="button"
           (click)="toggleTranslations()"
           class="text-xs text-gray-500 hover:text-blue-600 px-2 py-1 rounded hover:bg-gray-100 transition-colors whitespace-nowrap font-medium"
-          title="Afficher/Masquer les autres langues"
+          [title]="'editor.record.form.abstract.showTranslationsTooltip' | translate"
         >
-          {{ showTranslations ? '↑ Masquer' : '↓ Traduire' }} ({{ otherLanguagesList.length }})
+          {{ showTranslations ? '↑ ' + ('editor.record.form.abstract.hide' | translate) : '↓ ' + ('editor.record.form.abstract.showOtherLanguages' | translate) }} ({{ otherLanguagesList.length }})
         </button>
         <button
           *ngIf="otherLanguagesList.length > 0 && !isTranslating"
           type="button"
           (click)="translateWithDeepL()"
           class="text-xs text-purple-600 hover:text-purple-800 px-2 py-1 rounded hover:bg-purple-50 transition-colors whitespace-nowrap font-medium"
-          title="Traduire avec DeepL (langues manquantes uniquement)"
+          [title]="'editor.record.form.abstract.translateTooltip' | translate"
         >
-          🤖 DeepL
+          🤖 {{ 'editor.record.form.abstract.translate' | translate }}
         </button>
         <div
           *ngIf="isTranslating"
           class="flex items-center gap-2 px-2 py-1"
         >
           <mat-spinner diameter="16" class="!m-0"></mat-spinner>
-          <span class="text-xs text-gray-500">Traduction...</span>
+          <span class="text-xs text-gray-500">{{ 'editor.record.form.abstract.translating' | translate }}</span>
         </div>
       </div>
     </div>
@@ -38,7 +38,7 @@
     ></gn-ui-form-field-rich>
   </div>
 
-  <!-- Traductions (masquées par défaut) -->
+  <!-- Translations (hidden by default) -->
   <div
     *ngIf="showTranslations && otherLanguagesList.length > 0"
     class="pl-4 pt-2 border-l-2 border-gray-300 space-y-3 animate-in fade-in slide-in-from-top-2"
@@ -46,13 +46,13 @@
     <div *ngFor="let lang of otherLanguagesList" class="flex flex-col gap-2">
       <label class="text-sm font-medium text-gray-700">
         <span class="mr-2">{{ lang.label }}</span>
-        <span class="text-xs text-gray-400">(optionnel)</span>
+        <span class="text-xs text-gray-400">(optional)</span>
       </label>
       <textarea
         class="text-sm p-2 border border-gray-300 rounded bg-gray-50 focus:bg-white focus:border-blue-500 focus:outline-none min-h-[80px]"
         [value]="getTranslation(lang.code)"
         (change)="onTranslationChange(lang.code, $event)"
-        [placeholder]="'Traduction en ' + lang.label"
+        [placeholder]="getPlaceholder()"
       ></textarea>
     </div>
   </div>
