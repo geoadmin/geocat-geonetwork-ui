@@ -7,7 +7,7 @@
       [selected]="subTopics"
       [choices]="availableSubTopics || []"
       [allowSearch]="true"
-      (selectValues)="handleItemSelection($event)"
+      (selectValues)="handleItemSelectionTyped($event)"
     >
     </gn-ui-dropdown-multiselect>
     <div class="flex gap-2 flex-wrap">

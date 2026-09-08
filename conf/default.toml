@@ -19,7 +19,7 @@ datahub_url = "/datahub"
 # This should point to a proxy to avoid CORS errors on some requests (data preview, OGC capabilities etc.)
 # The actual URL will be appended after this path, e.g. : https://my.proxy/?url=http%3A%2F%2Fencoded.url%2Fows`
 # This is an optional parameter: leave empty to disable proxy usage
-proxy_path = "/dev-proxy?"
+proxy_path = "/geonetwork/proxy?url="
 # This optional parameter defines, in which language metadata should be queried in elasticsearch.
 # Use ISO 639-1 (https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) format in 2 characters to indicate the language of the metadata.
 # Setting to "current" will use the current language of the User Interface.
@@ -56,10 +56,10 @@ languages = ['en', 'fr', 'de', 'it']
 #  - for font families: https://developer.mozilla.org/en-US/docs/Web/CSS/font-family
 #  - for background: https://developer.mozilla.org/en-US/docs/Web/CSS/background
 [theme]
-primary_color = "#f19330"
-secondary_color = "#0071ae"
+primary_color = "#003441"
+secondary_color = "#c4d6db"
 main_color = "#212029" # All-purpose text color
-background_color = "#fdfbff"
+background_color = "#e1ebed"
 
 # These optional parameters indicate which background should be used for the main header and the text color used
 # on top of the background. The color should be chosen to contrast well with the background (defaults to white).
@@ -213,7 +213,7 @@ url = "https://wmts10.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-grau/default/cu
 #     wonderful <span style="font-size: 1.2em;">data catalogue</span>
 #     """
 [translations.fr]
-datahub.header.title.html = '<div class="flex justify-center sm:justify-start"><img src="assets/img/geocat-logo.png" class="h-20 sm:h-36 md:h-[10.5rem] -m-2"/></div>'
+datahub.header.title.html = '<div class="flex justify-center sm:justify-start"><img src="assets/img/swissgeo-banner.png" class="h-20 sm:h-36 md:h-[10.5rem] -m-2"/></div>'
 search.field.location.placeholder = 'ex: Berne'
 datahub.header.organisations = 'Catalogues'
 search.filters.publisher = 'Catalogues'
@@ -221,7 +221,7 @@ datahub.header.documentation = 'Documentation'
 datahub.header.admin = 'Admin'
 datahub.header.geonetwork = 'Geocat PRO'
 [translations.en]
-datahub.header.title.html = '<div class="flex justify-center sm:justify-start"><img src="assets/img/geocat-logo.png" class="h-20 sm:h-36 md:h-[10.5rem] -m-2"/></div>'
+datahub.header.title.html = '<div class="flex justify-center sm:justify-start"><img src="assets/img/swissgeo-banner.png" class="h-20 sm:h-36 md:h-[10.5rem] -m-2"/></div>'
 search.field.location.placeholder = 'ex: Berne'
 datahub.header.organisations = 'Catalogues'
 search.filters.publisher = 'Catalogues'
@@ -229,7 +229,7 @@ datahub.header.documentation = 'Documentation'
 datahub.header.admin = 'Admin'
 datahub.header.geonetwork = 'Geocat PRO'
 [translations.de]
-datahub.header.title.html = '<div class="flex justify-center sm:justify-start"><img src="assets/img/geocat-logo.png" class="h-20 sm:h-36 md:h-[10.5rem] -m-2"/></div>'
+datahub.header.title.html = '<div class="flex justify-center sm:justify-start"><img src="assets/img/swissgeo-banner.png" class="h-20 sm:h-36 md:h-[10.5rem] -m-2"/></div>'
 search.field.location.placeholder = 'ex: Berne'
 datahub.header.organisations = 'Kataloge'
 search.filters.publisher = 'Kataloge'
@@ -237,7 +237,7 @@ datahub.header.documentation = 'Dokumentation'
 datahub.header.admin = 'Admin'
 datahub.header.geonetwork = 'Geocat PRO'
 [translations.it]
-datahub.header.title.html = '<div class="flex justify-center sm:justify-start"><img src="assets/img/geocat-logo.png" class="h-20 sm:h-36 md:h-[10.5rem] -m-2"/></div>'
+datahub.header.title.html = '<div class="flex justify-center sm:justify-start"><img src="assets/img/swissgeo-banner.png" class="h-20 sm:h-36 md:h-[10.5rem] -m-2"/></div>'
 search.field.location.placeholder = 'ex: Berne'
 datahub.header.organisations = 'Cataloghi'
 search.filters.publisher = 'Cataloghi'

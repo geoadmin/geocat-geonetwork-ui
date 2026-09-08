@@ -34,6 +34,10 @@ export class FormFieldSubTopicsComponent {
     this.valueChange.emit(this.subTopics)
   }
 
+  handleItemSelectionTyped(selectedItems: unknown[]) {
+    this.handleItemSelection(selectedItems as string[])
+  }
+
   removeSubTopic(subTopic: string) {
     this.subTopics = this.subTopics.filter((t) => t !== subTopic)
     this.valueChange.emit(this.subTopics)

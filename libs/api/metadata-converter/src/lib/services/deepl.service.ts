@@ -1,6 +1,6 @@
 import { Injectable, Inject, InjectionToken, Optional } from '@angular/core'
 import { HttpClient, HttpHeaders } from '@angular/common/http'
-import { Observable, from, throwError } from 'rxjs'
+import { Observable, forkJoin, throwError } from 'rxjs'
 import { map, catchError } from 'rxjs/operators'
 
 // Import LanguageCode from common/domain
@@ -13,19 +13,11 @@ export const DEEPL_API_KEY = new InjectionToken<string>('deepl.api.key')
  * DeepL uses different codes than ISO (e.g., EN for English instead of en)
  */
 const DEEPL_LANGUAGE_MAP: Record<LanguageCode, string> = {
-  de: 'DE',
+  de: 'DE-CH',
   fr: 'FR',
   it: 'IT',
-  en: 'EN-US',
-  rm: 'EN-US', // Romansh not supported by DeepL, fallback to English
-}
-
-const REVERSE_DEEPL_MAP: Record<string, LanguageCode> = {
-  DE: 'de',
-  FR: 'fr',
-  IT: 'it',
-  'EN-US': 'en',
-  'EN-GB': 'en',
+  en: 'EN-GB',
+  rm: 'DE-CH', // Romansh not supported by DeepL, fallback to German
 }
 
 export interface DeepLTranslationResult {
@@ -97,41 +89,19 @@ export class DeepLService {
 
     console.log('[DeepLService] Translating text from', sourceLanguage, 'to', supportedTargets)
 
-    // Make multiple requests (one per target language) to get translations
-    const translationRequests = supportedTargets.map(targetLang =>
-      this.translateToLanguage(text, sourceLanguage, targetLang)
-        .pipe(
-          map(result => ({ [targetLang]: result })),
-          catchError(err => {
-            console.error(`[DeepLService] Failed to translate to ${targetLang}:`, err)
-            return throwError(() => err)
-          })
-        )
-    )
+    // Build an object with observables for each target language
+    const translationRequests: Record<string, Observable<string>> = {}
+    supportedTargets.forEach(targetLang => {
+      translationRequests[targetLang] = this.translateToLanguage(text, sourceLanguage, targetLang).pipe(
+        catchError(err => {
+          console.error(`[DeepLService] Failed to translate to ${targetLang}:`, err)
+          return throwError(() => err)
+        })
+      )
+    })
 
-    // Combine all translation results
-    return from(translationRequests).pipe(
-      map(result => result),
-      // Collect all results into a single object
-      (obs: Observable<any>) => new Observable(subscriber => {
-        const results: Record<LanguageCode, string> = {}
-        let completed = 0
-
-        translationRequests.forEach(req =>
-          req.subscribe({
-            next: (translation) => {
-              Object.assign(results, translation)
-              completed++
-              if (completed === translationRequests.length) {
-                subscriber.next(results)
-                subscriber.complete()
-              }
-            },
-            error: (err) => subscriber.error(err),
-          })
-        )
-      })
-    )
+    // Use forkJoin to combine all translations into a single object
+    return forkJoin(translationRequests)
   }
 
   /**
