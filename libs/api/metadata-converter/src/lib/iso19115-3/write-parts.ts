@@ -4,7 +4,9 @@ import {
   FieldTranslation,
   Individual,
   LanguageCode,
+  DatasetSpatialExtent,
 } from '@geonetwork-ui/common/domain/model/record'
+import { Geometry } from 'geojson'
 import {
   allChildrenElement,
   appendChildren,
@@ -12,44 +14,29 @@ import {
   createChild,
   createElement,
   createNestedChild,
-  createNestedElement,
   findChildElement,
   findChildOrCreate,
-  findChildrenElement,
   findNestedChildOrCreate,
-  findNestedElement,
-  findNestedElements,
   findParent,
   readAttribute,
-  removeChildren,
   removeChildrenByName,
   setTextContent,
   writeAttribute,
   XmlElement,
   parseXmlString,
   getRootElement,
-  XmlDocument,
 } from '../xml-utils'
 import {
   ChainableFunction,
-  fallback,
-  filterArray,
-  getAtIndex,
-  map,
-  mapArray,
   noop,
   pipe,
-  tap,
 } from '../function-utils'
 import {
   appendKeywords,
-  appendOnlineResource,
-  appendServiceOnlineResources,
   createConstraint,
   createDistributionInfo,
   createLicense,
   findOrCreateDistribution,
-  findOrCreateIdentification as findOrCreateIdentificationISO19139,
   getProgressCode,
   getRoleCode,
   removeEmptyResourceConstraints,
@@ -66,7 +53,6 @@ import {
   writeDecimal,
 } from '../iso19139/write-parts'
 import { writeGeometry } from '../iso19139/utils/geometry'
-import { findIdentification } from '../iso19139/read-parts'
 import { findIdentification19115 } from './read-parts'
 import { readKind } from './read-parts'
 import { namePartsToFull } from '../iso19139/utils/individual-name'
@@ -719,47 +705,6 @@ export function writeSpatialRepresentation(
   )(rootEl)
 }
 
-// this will remove all transfer options and formats from distribution info
-// and remove empty distribution info
-function removeTransferOptions(rootEl: XmlElement) {
-  // remove transfer options & formats
-  pipe(
-    findNestedElements('mdb:distributionInfo', 'mrd:MD_Distribution'),
-    mapArray(
-      pipe(
-        removeChildren(findChildrenElement('mrd:distributionFormat', false)),
-        removeChildren(findChildrenElement('mrd:transferOptions', false))
-      )
-    )
-  )(rootEl)
-  // remove empty distributions
-  removeChildren(
-    pipe(
-      findChildrenElement('mdb:distributionInfo', false),
-      filterArray(
-        pipe(
-          findChildElement('mrd:MD_Distribution'),
-          allChildrenElement,
-          map((children) => children.length === 0)
-        )
-      )
-    )
-  )(rootEl)
-}
-
-function appendOnlineResourceFormat(mimeType: string) {
-  return appendChildren(
-    pipe(
-      createElement('mrd:distributionFormat'),
-      createChild('mrd:MD_Format'),
-      createChild('mrd:formatSpecificationCitation'),
-      createChild('cit:CI_Citation'),
-      createChild('cit:title'),
-      writeCharacterString(mimeType)
-    )
-  )
-}
-
 function writeLocaleElement(language: LanguageCode) {
   const lang3 = toLang3(language.toLowerCase()) ?? language
   return pipe(
@@ -896,9 +841,9 @@ export function writeCitationDates(record: CatalogRecord, rootEl: XmlElement) {
   if (!citCitationEl.children) citCitationEl.children = []
 
   if (actualIndex >= 0) {
-    citCitationEl.children.splice(actualIndex, 0, dateWrapper as any)
+    citCitationEl.children.splice(actualIndex, 0, dateWrapper)
   } else {
-    citCitationEl.children.push(dateWrapper as any)
+    citCitationEl.children.push(dateWrapper)
   }
   dateWrapper.parent = citCitationEl
 }
@@ -1140,8 +1085,11 @@ function cloneElement(source: XmlElement): XmlElement {
  * Create a ChainableFunction that injects subtemplate XML children into gex:EX_Extent
  */
 function createExtentFromSubtemplate(
-  extent: any,
-  appendDescription: any
+  extent: DatasetSpatialExtent,
+  appendDescription: (
+    description?: string,
+    translations?: FieldTranslation
+  ) => ChainableFunction<void, XmlElement> | null
 ): ChainableFunction<void, XmlElement> {
   return () => {
     const extentEl = createElement('mri:extent')()
@@ -1164,7 +1112,7 @@ function createExtentFromSubtemplate(
         extent.translations?.description
       )
       if (descEl) {
-        descEl(exExtentEl)
+        appendChildTree(descEl)(exExtentEl)
       }
     }
 
@@ -1203,10 +1151,15 @@ function createExtentFromSubtemplate(
  * Create a ChainableFunction that builds an extent element from geometry/bbox/description
  */
 function createExtentFromGeometry(
-  extent: any,
-  appendBoundingPolygon: any,
-  appendGeographicBoundingBox: any,
-  appendDescription: any
+  extent: DatasetSpatialExtent,
+  appendBoundingPolygon: (geometry?: Geometry) => ChainableFunction<void, XmlElement> | null,
+  appendGeographicBoundingBox: (
+    bbox?: [number, number, number, number]
+  ) => ChainableFunction<void, XmlElement> | null,
+  appendDescription: (
+    description?: string,
+    translations?: FieldTranslation
+  ) => ChainableFunction<void, XmlElement> | null
 ): ChainableFunction<void, XmlElement> {
   return pipe(
     createElement('mri:extent'),
@@ -1233,7 +1186,7 @@ function createExtentFromGeometry(
 }
 
 export function writeSpatialExtents(record: DatasetRecord, rootEl: XmlElement) {
-  const appendBoundingPolygon = (geometry?: any) => {
+  const appendBoundingPolygon = (geometry?: Geometry): ChainableFunction<void, XmlElement> | null => {
     if (!geometry) return null
     return pipe(
       createElement('gex:EX_BoundingPolygon'),
@@ -1248,7 +1201,7 @@ export function writeSpatialExtents(record: DatasetRecord, rootEl: XmlElement) {
 
   const appendGeographicBoundingBox = (
     bbox?: [number, number, number, number]
-  ) => {
+  ): ChainableFunction<void, XmlElement> | null => {
     if (!bbox) return null
     return pipe(
       createElement('gex:EX_GeographicBoundingBox'),
@@ -1264,7 +1217,7 @@ export function writeSpatialExtents(record: DatasetRecord, rootEl: XmlElement) {
   const appendDescription = (
     description?: string,
     translations?: FieldTranslation
-  ) => {
+  ): ChainableFunction<void, XmlElement> | null => {
     if (!description) return null
     return pipe(
       createElement('gex:description'),
