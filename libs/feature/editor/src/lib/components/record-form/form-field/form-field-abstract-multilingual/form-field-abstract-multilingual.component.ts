@@ -56,13 +56,20 @@ export class FormFieldAbstractMultilingualComponent {
   isTranslating = false
   translatedByDeepL: { [lang: string]: boolean } = {}
 
-  availableLanguages: LanguageOption[] = [
-    { code: 'de', label: 'Deutsch (Allemand)', flag: 'de' },
-    { code: 'fr', label: 'Français (Français)', flag: 'fr' },
-    { code: 'it', label: 'Italiano (Italien)', flag: 'it' },
-    { code: 'rm', label: 'Rumantsch (Romanche)', flag: 'ch' },
-    { code: 'en', label: 'English (Anglais)', flag: 'gb' },
+  private availableLanguagesKeys: LanguageOption[] = [
+    { code: 'de', label: 'language.de', flag: 'de' },
+    { code: 'fr', label: 'language.fr', flag: 'fr' },
+    { code: 'it', label: 'language.it', flag: 'it' },
+    { code: 'rm', label: 'language.rm', flag: 'ch' },
+    { code: 'en', label: 'language.en', flag: 'gb' },
   ]
+
+  get availableLanguages(): LanguageOption[] {
+    return this.availableLanguagesKeys.map(lang => ({
+      ...lang,
+      label: this.translateService.instant(lang.label)
+    }))
+  }
 
   get otherLanguagesList(): LanguageOption[] {
     return this.availableLanguages.filter(
@@ -100,7 +107,7 @@ export class FormFieldAbstractMultilingualComponent {
       'en': ' (translated by DeepL)',
       'de': ' (von DeepL übersetzt)',
       'it': ' (tradotto da DeepL)',
-      'rm': ' (translatà da DeepL)',
+      'rm': ' (Rumantsch betg disponibel, per defect tudestg)',
     }
     return messages[lang] ?? ' (translated by DeepL)'
   }
@@ -115,7 +122,7 @@ export class FormFieldAbstractMultilingualComponent {
       ' (translated by DeepL)',
       ' (von DeepL übersetzt)',
       ' (tradotto da DeepL)',
-      ' (translatà da DeepL)',
+      ' (Rumantsch betg disponibel, per defect tudestg)',
     ]
     let result = text
     for (const warning of warnings) {
@@ -156,7 +163,6 @@ export class FormFieldAbstractMultilingualComponent {
       return
     }
 
-    // Translate to ALL other languages (re-translate even if they already have values)
     const allLanguages = this.otherLanguagesList.map(lang => lang.code)
 
     if (allLanguages.length === 0) {
@@ -166,51 +172,33 @@ export class FormFieldAbstractMultilingualComponent {
     this.isTranslating = true
     this.cdr.markForCheck()
 
-    // Separate Romansh translations (use German as source) from others (use default language)
-    const romanshLangs = allLanguages.filter(lang => lang === 'rm')
-    const otherLangs = allLanguages.filter(lang => lang !== 'rm')
-    const observables: any[] = []
+    // Check if Romansh is requested
+    const hasRomansh = allLanguages.includes('rm')
 
-    // Translate to other languages using default language as source
-    if (otherLangs.length > 0) {
-      observables.push(
-        this.deepLService.translateText(this.value, this.defaultLanguage, otherLangs)
-      )
-    }
+    // Build list of languages to translate to
+    // If Romansh is requested, we must also translate to German since we'll reuse it for Romansh
+    const languagesToTranslate = hasRomansh
+      ? allLanguages.map(lang => lang === 'rm' ? 'de' : lang) // Replace 'rm' with 'de'
+      : allLanguages
 
-    // Translate to Romansh using German as source (if present)
-    if (romanshLangs.length > 0) {
-      observables.push(
-        this.deepLService.translateText(this.value, 'de' as LanguageCode, romanshLangs)
-      )
-    }
-
-    // Combine all translations
-    if (observables.length === 0) {
-      this.isTranslating = false
-      return
-    }
-
-    this.deepLService.translateText(this.value, this.defaultLanguage, otherLangs.length > 0 ? otherLangs : allLanguages).subscribe({
-      next: (translations) => {
-        let allTranslations = { ...translations }
-
-        // If we have Romansh, also translate from German
-        if (romanshLangs.length > 0) {
-          this.deepLService.translateText(this.value, 'de' as LanguageCode, romanshLangs).subscribe({
-            next: (romanshTranslations) => {
-              allTranslations = { ...allTranslations, ...romanshTranslations }
-              this.applyTranslationsWithWarning(allLanguages, allTranslations)
-            },
-          })
-        } else {
-          this.applyTranslationsWithWarning(allLanguages, allTranslations)
+    this.deepLService.translateText(this.value, this.defaultLanguage, languagesToTranslate).subscribe({
+      next: (results) => {
+        // If Romansh was requested, copy the German translation to Romansh
+        if (hasRomansh && 'de' in results) {
+          results['rm'] = results['de']
+          // Remove the intermediate 'de' if it wasn't originally requested
+          if (!allLanguages.includes('de')) {
+            delete results['de']
+          }
         }
+
+        this.applyTranslationsWithWarning(allLanguages, results)
       },
-      error: (error) => {
+      error: (err) => {
+        console.error('[FormFieldAbstractMultilingual] Translation error:', err)
         this.isTranslating = false
         this.cdr.markForCheck()
-      },
+      }
     })
   }
 

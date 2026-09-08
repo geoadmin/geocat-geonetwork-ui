@@ -54,11 +54,9 @@
     <div *ngFor="let lang of otherLanguagesList" class="flex flex-col gap-1">
       <label class="text-sm font-medium text-gray-700">
         <span class="mr-2">{{ lang.label }}</span>
-        <span class="text-xs text-gray-400">(optional)</span>
+        <span class="text-xs text-gray-400">{{ 'editor.record.form.field.optional' | translate }}</span>
       </label>
       <textarea
-        cdkTextareaAutosize
-        cdkAutosizeMinRows="1"
         class="text-sm p-2 border border-gray-300 rounded bg-gray-50 focus:bg-white focus:border-blue-500 focus:outline-none"
         [value]="getTranslation(lang.code)"
         (change)="onTranslationChange(lang.code, $event)"

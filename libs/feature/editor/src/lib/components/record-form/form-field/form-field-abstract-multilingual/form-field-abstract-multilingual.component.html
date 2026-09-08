@@ -46,7 +46,7 @@
     <div *ngFor="let lang of otherLanguagesList" class="flex flex-col gap-2">
       <label class="text-sm font-medium text-gray-700">
         <span class="mr-2">{{ lang.label }}</span>
-        <span class="text-xs text-gray-400">(optional)</span>
+        <span class="text-xs text-gray-400">{{ 'editor.record.form.field.optional' | translate }}</span>
       </label>
       <textarea
         class="text-sm p-2 border border-gray-300 rounded bg-gray-50 focus:bg-white focus:border-blue-500 focus:outline-none min-h-[80px]"

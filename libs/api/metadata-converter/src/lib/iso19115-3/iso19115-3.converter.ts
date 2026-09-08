@@ -1,4 +1,4 @@
-import { CatalogRecord } from '@geonetwork-ui/common/domain/model/record'
+import { CatalogRecord, DatasetRecord } from '@geonetwork-ui/common/domain/model/record'
 import { XmlElement } from '@rgrove/parse-xml'
 import { Iso19139Converter } from '../iso19139'
 import {
@@ -250,7 +250,7 @@ export class Iso191153Converter extends Iso19139Converter {
       // Add metadata maintenance information in mdb:metadataMaintenance
       // This is required by ISO19115-3.2018.che for proper schema validation
       if (record.updateFrequency) {
-        writeMetadataMaintenance(record as any, rootEl)
+        writeMetadataMaintenance(record as DatasetRecord, rootEl)
       }
     }
 
@@ -298,7 +298,6 @@ export class Iso191153Converter extends Iso19139Converter {
       (match, attrs) => {
         // Extract existing namespace declarations and other attributes
         const nsRegex = /xmlns:[a-zA-Z0-9]+="[^"]*"/g
-        const existingNs = (attrs.match(nsRegex) || [])
         const otherAttrs = attrs.replace(nsRegex, '').replace(/\s*gco:isoType="[^"]*"/g, '').trim()
 
         // CHE19115-3.2018 requires these namespaces in specific order

@@ -92,7 +92,7 @@ import { EditorRouterService } from './router.service'
     },
     {
       provide: DEEPL_API_KEY,
-      useValue: environment.deepl.apiKey,
+      useFactory: () => environment.deepl?.apiKey || '',
     },
   ],
   bootstrap: [AppComponent],
