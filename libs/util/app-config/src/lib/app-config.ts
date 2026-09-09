@@ -106,8 +106,7 @@ export function loadAppConfig(configUrl = 'assets/configuration/default.toml') {
           'web_component_embedder_url',
           'languages',
           'contact_email',
-          'reuse_form_url',
-          'deepl_api_key',
+          'reuse_form_url'
         ],
         warnings,
         errors
@@ -138,8 +137,7 @@ export function loadAppConfig(configUrl = 'assets/configuration/default.toml') {
                 parsedGlobalSection.web_component_embedder_url,
               LANGUAGES: parsedGlobalSection.languages,
               CONTACT_EMAIL: parsedGlobalSection.contact_email,
-              REUSE_FORM_URL: parsedGlobalSection.reuse_form_url,
-              DEEPL_API_KEY: parsedGlobalSection.deepl_api_key,
+              REUSE_FORM_URL: parsedGlobalSection.reuse_form_url
             } as GlobalConfig)
 
       const parsedLayersSections = parseMultiConfigSection(
