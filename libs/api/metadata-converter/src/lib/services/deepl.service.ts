@@ -36,7 +36,8 @@ export interface DeepLTranslationResult {
 })
 export class DeepLService {
   private readonly apiUrl = 'https://api.deepl.com/v2/translate'
-  private readonly devProxyUrl = '/dev-proxy?https://api.deepl.com/v2/translate' // Dev proxy to avoid CORS
+  // Dev proxy to avoid CORS, to change with 'geonetwork/proxy?url=' with configurable proxy in web.xml
+  private readonly proxyUrl = '/dev-proxy?'
   private readonly apiKey: string
 
   constructor(
@@ -132,8 +133,9 @@ export class DeepLService {
 
     console.log(`[DeepLService] Calling API for ${sourceLanguage}→${targetLanguage}`)
 
+    const fullProxyUrl = `${this.proxyUrl}${encodeURIComponent(this.apiUrl)}`
     return this.http.post<DeepLTranslationResult>(
-      this.devProxyUrl,
+      fullProxyUrl,
       params.toString(),
       { headers }
     ).pipe(
