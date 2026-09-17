@@ -9,10 +9,23 @@ import type { LanguageCode } from '@geonetwork-ui/common/domain/model/record'
 export const DEEPL_API_KEY = new InjectionToken<string>('deepl.api.key')
 
 /**
- * DeepL API language code to ISO 639-1 code mapping
- * DeepL uses different codes than ISO (e.g., EN for English instead of en)
+ * DeepL API source language code mapping
+ * DeepL uses different codes than ISO and has restrictions:
+ * - source_lang: only accepts base language codes (EN, FR, DE, IT, etc.)
+ * - target_lang: accepts variants (EN-GB, EN-US, DE-CH, etc.)
  */
-const DEEPL_LANGUAGE_MAP: Record<LanguageCode, string> = {
+const DEEPL_SOURCE_LANGUAGE_MAP: Record<LanguageCode, string> = {
+  de: 'DE',
+  fr: 'FR',
+  it: 'IT',
+  en: 'EN',
+  rm: 'DE', // Romansh not supported by DeepL, fallback to German
+}
+
+/**
+ * DeepL API target language code mapping (supports regional variants)
+ */
+const DEEPL_TARGET_LANGUAGE_MAP: Record<LanguageCode, string> = {
   de: 'DE-CH',
   fr: 'FR',
   it: 'IT',
@@ -80,7 +93,7 @@ export class DeepLService {
 
     // Filter out unsupported languages and duplicates
     const supportedTargets = Array.from(new Set(
-      targetLanguages.filter(lang => DEEPL_LANGUAGE_MAP[lang])
+      targetLanguages.filter(lang => DEEPL_TARGET_LANGUAGE_MAP[lang])
     ))
 
     if (supportedTargets.length === 0) {
@@ -113,8 +126,8 @@ export class DeepLService {
     sourceLanguage: LanguageCode,
     targetLanguage: LanguageCode
   ): Observable<string> {
-    const deepLSource = DEEPL_LANGUAGE_MAP[sourceLanguage]
-    const deepLTarget = DEEPL_LANGUAGE_MAP[targetLanguage]
+    const deepLSource = DEEPL_SOURCE_LANGUAGE_MAP[sourceLanguage]
+    const deepLTarget = DEEPL_TARGET_LANGUAGE_MAP[targetLanguage]
 
     if (!deepLSource || !deepLTarget) {
       return throwError(() => new Error(`Unsupported language: ${sourceLanguage} or ${targetLanguage}`))
