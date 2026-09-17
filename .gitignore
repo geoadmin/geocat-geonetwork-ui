@@ -56,4 +56,3 @@ apps/webcomponents/cypress/screenshots/**
 
 # Environment and API keys
 .env.local
-apps/metadata-editor/src/environments/environment.ts
