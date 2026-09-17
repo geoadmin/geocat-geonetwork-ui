@@ -20,6 +20,12 @@ datahub_url = "/datahub"
 # The actual URL will be appended after this path, e.g. : https://my.proxy/?url=http%3A%2F%2Fencoded.url%2Fows`
 # This is an optional parameter: leave empty to disable proxy usage
 proxy_path = "/geonetwork/proxy?url="
+
+# DeepL API key for translation services
+# This will be injected by GitLab CI/CD from the DEEPL_API_KEY secret variable
+# Leave empty to disable DeepL translation features
+deepl_api_key = ""
+
 # This optional parameter defines, in which language metadata should be queried in elasticsearch.
 # Use ISO 639-1 (https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) format in 2 characters to indicate the language of the metadata.
 # Setting to "current" will use the current language of the User Interface.

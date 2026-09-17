@@ -13,6 +13,7 @@ export interface GlobalConfig {
   LANGUAGES?: string[]
   CONTACT_EMAIL?: string
   REUSE_FORM_URL?: string
+  DEEPL_API_KEY?: string
 }
 
 export interface LayerConfig {

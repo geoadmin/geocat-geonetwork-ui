@@ -6,7 +6,7 @@ run-name: 📦 Generate artifacts for ${{ github.event_name == 'issue_comment' &
 on:
   push:
     branches:
-      - geocat
+      - editor-for-eCH-0271
   release:
     types: [published]
   issue_comment:

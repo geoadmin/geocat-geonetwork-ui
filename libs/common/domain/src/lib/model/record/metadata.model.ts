@@ -130,7 +130,7 @@ export interface BaseRecord {
   recordUpdated: Date
   kind: RecordKind
   topics: Array<string> // TODO: handle codelists
-  subTopics: Array<string> // CHE-specific sub-topics
+  subTopics: Array<string> // TODO: handle codelists
   keywords: Array<Keyword>
   licenses: Array<Constraint>
   legalConstraints: Array<Constraint>
@@ -281,12 +281,14 @@ export type ServiceOnlineResource = (ServiceEndpoint | OnlineLinkResource) & {
 
 export interface ServiceRecord extends BaseRecord {
   kind: 'service'
+  status: RecordStatus
   onlineResources: Array<ServiceOnlineResource>
   spatialExtents: Array<DatasetSpatialExtent>
 }
 
 export interface ReuseRecord extends BaseRecord {
   kind: 'reuse'
+  status: RecordStatus
   lineage: string // Explanation of the origin of this record (e.g: how, why)"
   onlineResources: Array<DatasetOnlineResource>
   reuseType: ReuseType
