@@ -459,6 +459,60 @@ export function writeReuseType(record: CatalogRecord, rootEl: XmlElement) {
   writeKind(record, rootEl)
 }
 
+/**
+ * Insert subtemplate XML content into parent element
+ * Parses the subtemplate XML and adds all children of cit:CI_Responsibility
+ * to the parent element (mdb:contact, mri:pointOfContact, etc.)
+ */
+function appendSubtemplateContent(
+  subtemplateXml: string | undefined | null
+): ChainableFunction<XmlElement, XmlElement> {
+  return (parentElement: XmlElement) => {
+    if (!subtemplateXml || !subtemplateXml.trim()) {
+      return parentElement
+    }
+
+    try {
+      // Parse the subtemplate XML
+      const parsedXml = parseXmlString(subtemplateXml)
+      if (!parsedXml) {
+        console.warn('Failed to parse subtemplate XML')
+        return parentElement
+      }
+
+      const root = getRootElement(parsedXml)
+      if (!root) {
+        console.warn('No root element in parsed subtemplate XML')
+        return parentElement
+      }
+
+      // Find cit:CI_Responsibility element
+      let responsibilityEl: XmlElement | undefined = root
+
+      // If root is not cit:CI_Responsibility, search for it
+      if (root.name !== 'cit:CI_Responsibility') {
+        responsibilityEl = findChildElement('cit:CI_Responsibility')(root)
+      }
+
+      if (!responsibilityEl) {
+        console.warn('No cit:CI_Responsibility element found in subtemplate XML')
+        return parentElement
+      }
+
+      // Add all children of cit:CI_Responsibility to parent element
+      const children = allChildrenElement(responsibilityEl)
+      // Create chainable functions from each child and append them
+      const childFunctions = children.map(
+        (child): ChainableFunction<void, XmlElement> => () => child
+      )
+      return appendChildren(...childFunctions)(parentElement)
+    } catch (error) {
+      console.error('Error inserting subtemplate content:', error)
+      return parentElement
+    }
+  }
+}
+
 export function appendResponsibleParty(
   contact: Individual,
   defaultLanguage: LanguageCode
@@ -569,12 +623,38 @@ export function writeContacts(record: CatalogRecord, rootEl: XmlElement) {
   pipe(
     removeChildrenByName('mdb:contact'),
     appendChildren(
-      ...(record.contacts || []).map((contact) =>
-        pipe(
-          createElement('gmd:contact'),
-          appendResponsibleParty(contact, record.defaultLanguage)
+      ...(record.contacts || []).map((contact) => {
+        // When xlink:href is present, GeoNetwork will resolve the subtemplate content
+        // so we just add the wrapper with xlink:href and no child content
+        // When no xlink:href but subtemplateXml exists, use the stored XML directly
+        const hasXlinkHref = !!(contact as any).subtemplateXlinkHref
+        const hasSubtemplateXml = !!(contact as any).subtemplateXml
+
+        // Determine which content function to use
+        let contentFn: ChainableFunction<XmlElement, XmlElement>
+        if (hasXlinkHref) {
+          // With xlink:href, don't add content (GeoNetwork will resolve it)
+          contentFn = noop
+        } else if (hasSubtemplateXml) {
+          // Without xlink:href but with subtemplateXml, use the stored XML
+          contentFn = appendSubtemplateContent((contact as any).subtemplateXml)
+        } else {
+          // No xlink:href and no subtemplateXml, generate from contact data
+          contentFn = appendResponsibleParty(contact, record.defaultLanguage)
+        }
+
+        return pipe(
+          createElement('mdb:contact'),
+          // Add xlink:href attribute if this contact references a subtemplate
+          hasXlinkHref
+            ? writeAttribute(
+                'xlink:href',
+                (contact as any).subtemplateXlinkHref
+              )
+            : noop,
+          contentFn
         )
-      )
+      })
     )
   )(rootEl)
 }
@@ -594,12 +674,32 @@ export function writeContactsForResource(
     findOrCreateIdentification(),
     removeChildrenByName('mri:pointOfContact'),
     appendChildren(
-      ...withoutDistributors.map((contact) =>
-        pipe(
+      ...withoutDistributors.map((contact) => {
+        // When xlink:href is present, GeoNetwork will resolve the subtemplate content
+        const hasXlinkHref = !!(contact as any).subtemplateXlinkHref
+        const hasSubtemplateXml = !!(contact as any).subtemplateXml
+
+        // Determine which content function to use
+        let contentFn: ChainableFunction<XmlElement, XmlElement>
+        if (hasXlinkHref) {
+          contentFn = noop
+        } else if (hasSubtemplateXml) {
+          contentFn = appendSubtemplateContent((contact as any).subtemplateXml)
+        } else {
+          contentFn = appendResponsibleParty(contact, record.defaultLanguage)
+        }
+
+        return pipe(
           createElement('mri:pointOfContact'),
-          appendResponsibleParty(contact, record.defaultLanguage)
+          hasXlinkHref
+            ? writeAttribute(
+                'xlink:href',
+                (contact as any).subtemplateXlinkHref
+              )
+            : noop,
+          contentFn
         )
-      )
+      })
     )
   )(rootEl)
   if (!distributors.length) return
@@ -609,12 +709,32 @@ export function writeContactsForResource(
     createChild('mrd:distributor'),
     createChild('mrd:MD_Distributor'),
     appendChildren(
-      ...distributors.map((contact) =>
-        pipe(
+      ...distributors.map((contact) => {
+        // When xlink:href is present, GeoNetwork will resolve the subtemplate content
+        const hasXlinkHref = !!(contact as any).subtemplateXlinkHref
+        const hasSubtemplateXml = !!(contact as any).subtemplateXml
+
+        // Determine which content function to use
+        let contentFn: ChainableFunction<XmlElement, XmlElement>
+        if (hasXlinkHref) {
+          contentFn = noop
+        } else if (hasSubtemplateXml) {
+          contentFn = appendSubtemplateContent((contact as any).subtemplateXml)
+        } else {
+          contentFn = appendResponsibleParty(contact, record.defaultLanguage)
+        }
+
+        return pipe(
           createElement('mrd:distributorContact'),
-          appendResponsibleParty(contact, record.defaultLanguage)
+          hasXlinkHref
+            ? writeAttribute(
+                'xlink:href',
+                (contact as any).subtemplateXlinkHref
+              )
+            : noop,
+          contentFn
         )
-      )
+      })
     )
   )(rootEl)
 }

@@ -110,6 +110,10 @@ export class MetadataQualityComponent implements OnChanges {
     }
   }
 
+  get displayLabel(): string | undefined {
+    return this.smaller ? undefined : this.qualityScoreLabel
+  }
+
   initialize() {
     if (!this.propsToValidate) {
       this.propsToValidate = getAllKeysValidator()
