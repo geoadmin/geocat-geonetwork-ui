@@ -319,6 +319,12 @@ export const DEFAULT_CONFIGURATION: EditorConfig = {
  ************************************************************
  */
 export const AVAILABLE_LICENSES: string[] = [
+  // OpenData.swiss licenses first
+  'terms_open',
+  'terms_by',
+  'terms_ask',
+  'terms_by_ask',
+  // Then other licenses
   'cc-by',
   'cc-by-sa',
   'cc-zero',
@@ -327,10 +333,6 @@ export const AVAILABLE_LICENSES: string[] = [
   'odbl',
   'odc-by',
   'pddl',
-  'terms_open',
-  'terms_by',
-  'terms_ask',
-  'terms_by_ask',
   'unknown',
 ]
 
