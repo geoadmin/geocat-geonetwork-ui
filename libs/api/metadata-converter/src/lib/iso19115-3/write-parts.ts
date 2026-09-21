@@ -32,8 +32,13 @@ import {
   pipe,
 } from '../function-utils'
 import {
+  findLicenseCodeByText,
+  isOpenDataLicense,
+} from '../common/opendata-licenses'
+import {
   appendKeywords,
   createConstraint,
+  createCHELicense,
   createDistributionInfo,
   createLicense,
   findOrCreateDistribution,
@@ -1515,9 +1520,16 @@ export function writeLicenses(record: CatalogRecord, rootEl: XmlElement) {
     findOrCreateIdentification(), // Use ISO19115-3 version
     removeLicenses(),
     appendChildren(
-      ...record.licenses.map((license) =>
-        createLicense(license, record.defaultLanguage)
-      )
+      ...record.licenses.map((license) => {
+        // Try to find the OpenData license code from the license text
+        const licenseCode = findLicenseCodeByText(license.text)
+
+        // Use CHE format for OpenData licenses, otherwise use standard format
+        if (licenseCode && isOpenDataLicense(licenseCode)) {
+          return createCHELicense(license, licenseCode, record.defaultLanguage)
+        }
+        return createLicense(license, record.defaultLanguage)
+      })
     )
   )(rootEl)
 }
