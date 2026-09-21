@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core'
 import { HttpClient } from '@angular/common/http'
 import { Observable, of } from 'rxjs'
 import { map, catchError, tap } from 'rxjs/operators'
+import { TranslateService } from '@ngx-translate/core'
 
 export interface SubtemplateSearchResult {
   id: string
@@ -20,11 +21,20 @@ export interface SubtemplateExtent {
   xml?: string  // Full XML content (loaded on demand)
 }
 
+export interface SubtemplateContact {
+  id: string
+  uuid: string
+  label: string // Display name (resourceTitle)
+  xml?: string  // Full XML content (loaded on demand)
+  owner?: string  // Owner of the template (for pointOfContact pre-selection)
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class GeoNetworkSubtemplateService {
   private http = inject(HttpClient)
+  private translateService = inject(TranslateService)
   private geonetworkApiUrl = '/geonetwork/srv/api'
 
   /**
@@ -37,6 +47,89 @@ export class GeoNetworkSubtemplateService {
   ): Observable<SubtemplateExtent[]> {
     console.log('Searching for extents with query:', query)
     return this.searchAllTemplates(query, limit)
+  }
+
+  /**
+   * Search for contact subtemplates in GeoNetwork
+   * Filters by isTemplate="s" and root="cit:CI_Responsibility"
+   * This retrieves "Organizations & contacts (ISO19115-3)" type templates
+   */
+  searchContactSubtemplates(
+    query?: string,
+    limit: number = 20
+  ): Observable<SubtemplateContact[]> {
+    console.log('Searching for contact subtemplates with query:', query)
+
+    const mustClauses: any[] = [
+      { term: { isTemplate: 's' } },  // Subtemplates only
+      { term: { root: 'cit:CI_Responsibility' } },  // Contact/Organization type
+    ]
+
+    // Add text search if query provided
+    if (query && query.trim()) {
+      mustClauses.push({
+        multi_match: {
+          query: query,
+          type: 'bool_prefix',
+          fields: [
+            'resourceTitleObject.*^4',
+            'resourceAbstractObject.*^3',
+            'tag^2',
+          ],
+        },
+      })
+    }
+
+    const searchQuery: any = {
+      query: {
+        bool: {
+          must: mustClauses,
+        },
+      },
+      _source: [
+        'id',
+        'uuid',
+        'resourceTitleObject',
+        'resourceTitle',
+        'root',
+        'owner',
+        'ownerGroup',
+        'type',
+        'schema',
+      ],
+      from: 0,
+      size: limit,
+    }
+
+    return this.http
+      .post<any>(
+        `${this.geonetworkApiUrl}/search/records/_search`,
+        searchQuery
+      )
+      .pipe(
+        map((response) => {
+          if (!response.hits || !response.hits.hits) {
+            return []
+          }
+
+          const results = response.hits.hits.map((hit: any) => {
+            const source = hit._source || {}
+            const contact: SubtemplateContact = {
+              id: source.id || '',
+              uuid: source.uuid || '',
+              label: this.extractLabel(source),
+              owner: source.owner || source.ownerGroup,
+            }
+            return contact
+          })
+
+          return results
+        }),
+        catchError((error) => {
+          console.error('Contact subtemplate search failed:', error)
+          return of([])
+        })
+      )
   }
 
   /**
@@ -135,6 +228,55 @@ export class GeoNetworkSubtemplateService {
   }
 
   /**
+   * Get available subtemplate types with counts
+   * Returns aggregation of root element types: { 'cit:CI_Responsibility': 42, 'gex:EX_Extent': 10, ... }
+   */
+  getAvailableTemplateTypes(): Observable<Record<string, number>> {
+    const query = {
+      query: {
+        bool: {
+          must: [
+            { term: { isTemplate: 's' } },  // Subtemplates only
+          ],
+        },
+      },
+      aggs: {
+        types: {
+          terms: {
+            field: 'root',
+            size: 100,
+          },
+        },
+      },
+      size: 0,  // We only want aggregations, not actual records
+    }
+
+    return this.http
+      .post<any>(
+        `${this.geonetworkApiUrl}/search/records/_search`,
+        query
+      )
+      .pipe(
+        map((response) => {
+          const result: Record<string, number> = {}
+          if (
+            response.aggregations?.types?.buckets &&
+            Array.isArray(response.aggregations.types.buckets)
+          ) {
+            response.aggregations.types.buckets.forEach((bucket: any) => {
+              result[bucket.key] = bucket.doc_count
+            })
+          }
+          return result
+        }),
+        catchError((error) => {
+          console.error('Failed to fetch template types:', error)
+          return of({})
+        })
+      )
+  }
+
+  /**
    * Extract bounding box from subtemplate XML string
    * Returns [west, south, east, north] or null if not found
    */
@@ -228,25 +370,44 @@ export class GeoNetworkSubtemplateService {
   }
 
   /**
-   * Extract display label from search result
+   * Extract display label from search result using current language
+   * Maps language codes to GeoNetwork keys: 'en' -> 'langeng', 'fr' -> 'langfre', etc.
    */
   private extractLabel(result: any): string {
     // Try resourceTitleObject first (multilingual field)
-    if (result.resourceTitleObject) {
-      if (typeof result.resourceTitleObject === 'object') {
-        // It's an object with language keys
-        return (
-          result.resourceTitleObject.default ||
-          result.resourceTitleObject.eng ||
-          result.resourceTitleObject.fre ||
-          result.resourceTitleObject.ger ||
-          Object.values(result.resourceTitleObject)[0] ||
-          result.id ||
-          'Unknown'
-        )
+    if (result.resourceTitleObject && typeof result.resourceTitleObject === 'object') {
+      // Get current language from TranslateService
+      const currentLang = this.translateService.currentLang || this.translateService.defaultLang || 'en'
+
+      // Map language codes to GeoNetwork format: en -> langeng, fr -> langfre, de -> langger, it -> langita, rm -> langroh
+      const langMap: Record<string, string> = {
+        'en': 'langeng',
+        'eng': 'langeng',
+        'fr': 'langfre',
+        'fre': 'langfre',
+        'de': 'langger',
+        'ger': 'langger',
+        'it': 'langita',
+        'ita': 'langita',
+        'rm': 'langroh',
+        'roh': 'langroh',
       }
-      // It's already a string
-      return result.resourceTitleObject
+
+      const langKey = langMap[currentLang] || 'langeng'
+
+      // Try current language, then other languages, then default
+      return (
+        result.resourceTitleObject[langKey] ||
+        result.resourceTitleObject.langeng ||
+        result.resourceTitleObject.langfre ||
+        result.resourceTitleObject.langger ||
+        result.resourceTitleObject.langita ||
+        result.resourceTitleObject.langroh ||
+        result.resourceTitleObject.default ||
+        Object.values(result.resourceTitleObject)[0] ||
+        result.id ||
+        'Unknown'
+      )
     }
     // Fallback to resourceTitle
     if (typeof result.resourceTitle === 'string') {
