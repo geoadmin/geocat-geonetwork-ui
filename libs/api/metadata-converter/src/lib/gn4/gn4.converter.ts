@@ -24,7 +24,6 @@ export class Gn4Converter extends BaseConverter<Gn4Record> {
       kind: 'dataset',
       status: null,
       lineage: null,
-      sourceRecords: [],
       recordUpdated: null,
       recordPublished: null,
       ownerOrganization: null,

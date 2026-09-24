@@ -156,14 +156,12 @@ describe('Sections', () => {
       .should('not.eql', '')
 
     // it should display the keywords
-    cy.get('.metadata-info-keywords')
-      .find('gn-ui-button')
-      .should('have.length.gt', 0)
+    cy.get('gn-ui-badge').should('have.length.gt', 0)
 
-    // it should display four expandable panels
+    // it should display three expandable panels
     cy.get('datahub-record-metadata')
       .find('gn-ui-expandable-panel')
-      .should('have.length', 4)
+      .should('have.length', 3)
 
     // it should display the lineage
     cy.get('datahub-record-metadata')
@@ -172,19 +170,6 @@ describe('Sections', () => {
       .invoke('text')
       .invoke('trim')
       .should('not.eq', '')
-
-    // it should display one contact pill in the contacts panel
-    cy.get('datahub-record-metadata')
-      .find('[id="about"]')
-      .find('gn-ui-expandable-panel')
-      .eq(1)
-      .click()
-    cy.get('gn-ui-expandable-panel')
-      .eq(1)
-      .children('div')
-      .eq(1)
-      .find('[data-test="contact-pill"]')
-      .should('have.length', 1)
 
     // it should display the data producer elements
     cy.get('datahub-record-metadata')
@@ -201,14 +186,14 @@ describe('Sections', () => {
     cy.get('datahub-record-metadata')
       .find('[id="about"]')
       .find('gn-ui-expandable-panel')
-      .eq(2)
+      .eq(1)
       .click()
     cy.get('gn-ui-expandable-panel')
+      .eq(1)
+      .children('div')
+      .eq(1)
+      .children('div')
       .eq(2)
-      .children('div')
-      .eq(1)
-      .children('div')
-      .eq(1)
       .children('div')
       .as('aboutContent')
     cy.get('@aboutContent').should('have.length', 4)
@@ -258,11 +243,7 @@ describe('Sections', () => {
       .should('eq', 'https://www.geo2france.fr/')
 
     // it should go to dataset search page when clicking on keyword and filter by keyword
-    cy.get('.metadata-info-keywords')
-      .find('gn-ui-button')
-      .should('have.length.gt', 0)
-      .eq(2)
-      .as('keyword')
+    cy.get('gn-ui-badge').should('have.length.gt', 0).eq(2).as('keyword')
 
     cy.get('@keyword').invoke('text').invoke('toUpperCase').as('keywordText')
     cy.get('@keyword').first().click()
@@ -305,54 +286,6 @@ describe('Sections', () => {
         expect(text).to.include('10.')
       })
     })
-  })
-
-  it('Contact details overlay', () => {
-    cy.visit('/dataset/01491630-78ce-49f3-b479-4b30dabc4c69')
-
-    // open the contacts panel
-    cy.get('datahub-record-metadata')
-      .find('[id="about"]')
-      .find('gn-ui-expandable-panel')
-      .eq(1)
-      .click()
-    cy.get('[data-test="contact-pill"]').first().as('contactPill')
-
-    // it should open the contact details overlay when clicking the pill
-    cy.get('@contactPill').click()
-    cy.get('[data-test="contact-details"]').should('be.visible')
-
-    // it should display the contact name matching the pill label
-    cy.get('@contactPill')
-      .find('span[title]')
-      .invoke('text')
-      .invoke('trim')
-      .then((pillLabel) => {
-        expect(pillLabel).to.not.eql('')
-        cy.get('[data-test="contact-details-name"]')
-          .invoke('text')
-          .invoke('trim')
-          .should('eql', pillLabel)
-      })
-
-    // it should display the contact email as a mailto link
-    cy.get('[data-test="contact-details-email"]')
-      .invoke('text')
-      .should('include', '@')
-    cy.get('[data-test="contact-details-email"]')
-      .invoke('attr', 'href')
-      .should('match', /^mailto:/)
-
-    // it should close the overlay when clicking the pill again
-    cy.get('@contactPill').click()
-    cy.get('[data-test="contact-details"]').should('not.exist')
-
-    // it should close the overlay when clicking outside of it
-    cy.get('@contactPill').click()
-    cy.get('[data-test="contact-details"]').should('be.visible')
-    // click the page title, which sits above the overlay and is not covered by it
-    cy.get('datahub-record-header').find('h1').first().click()
-    cy.get('[data-test="contact-details"]').should('not.exist')
   })
 
   it('Metadata quality widget', () => {
@@ -651,8 +584,11 @@ describe('Sections', () => {
     cy.get('@proviLink')
       .invoke('attr', 'href')
       .then((link) => {
-        cy.get('@proviLink').click()
-        cy.url().should('include', link)
+        const targetLink = link
+        cy.get('@proviLink')
+          .invoke('removeAttr', 'target') // this prevents having a target="_blank" attribute
+          .click()
+        cy.url().should('include', targetLink)
       })
 
     // When there is no link

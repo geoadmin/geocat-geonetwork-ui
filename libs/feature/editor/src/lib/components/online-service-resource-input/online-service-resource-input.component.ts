@@ -22,7 +22,6 @@ import {
   TextInputComponent,
   UrlInputComponent,
 } from '@geonetwork-ui/ui/inputs'
-import { SpinningLoaderComponent } from '@geonetwork-ui/ui/widgets'
 import { createFuzzyFilter, getLayers } from '@geonetwork-ui/util/shared'
 import {
   NgIconComponent,
@@ -58,7 +57,6 @@ marker(
     MatTooltipModule,
     MatRadioModule,
     NgIconComponent,
-    SpinningLoaderComponent,
     TextInputComponent,
     TranslateDirective,
     TranslatePipe,
@@ -81,19 +79,17 @@ export class OnlineServiceResourceInputComponent {
   @Input() protocolHint?: string
   @Input() disabled? = false
   @Input() modifyMode? = false
-  @Input() protocolOptions?: ServiceProtocol[]
   @Output() serviceChange: EventEmitter<DatasetServiceDistribution> =
     new EventEmitter()
 
   errorMessage = false
-  loading = false
   resetUrlOnChange = Math.random()
 
   layersSubject = new BehaviorSubject<{ name?: string; title?: string }[]>([])
   layers$: Observable<{ name?: string; title?: string }[]> =
     this.layersSubject.asObservable()
 
-  allProtocolOptions: {
+  protocolOptions: {
     label: string
     value: ServiceProtocol
   }[] = [
@@ -127,13 +123,6 @@ export class OnlineServiceResourceInputComponent {
     },
   ]
 
-  get availableProtocolOptions() {
-    if (!this.protocolOptions) return this.allProtocolOptions
-    return this.protocolOptions.flatMap(
-      (v) => this.allProtocolOptions.find((o) => o.value === v) ?? []
-    )
-  }
-
   get activeLayerSuggestion() {
     return !['wps', 'GPFDL', 'esriRest', 'other'].includes(
       this._service.accessServiceProtocol
@@ -146,8 +135,6 @@ export class OnlineServiceResourceInputComponent {
   }
 
   async handleUploadClick(url: string) {
-    this.loading = true
-    this.cdr.detectChanges()
     try {
       const layers = await getLayers(url, this._service.accessServiceProtocol)
 
@@ -161,7 +148,6 @@ export class OnlineServiceResourceInputComponent {
       this.layersSubject.next([])
     }
 
-    this.loading = false
     this.cdr.detectChanges()
   }
 
@@ -173,7 +159,6 @@ export class OnlineServiceResourceInputComponent {
 
   resetLayersSuggestion() {
     this.errorMessage = false
-    this.loading = false
     this.layersSubject.next([])
     this._service.identifierInService = null
   }

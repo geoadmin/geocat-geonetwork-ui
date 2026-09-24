@@ -1,30 +1,30 @@
 <div class="flex flex-col gap-3">
   <gn-ui-autocomplete
     [placeholder]="'editor.record.form.field.contacts.placeholder' | translate"
-    [action]="autoCompleteAction"
-    (itemSelected)="addContact($event)"
-    [displayWithFn]="displayWithFn"
+    [action]="subtemplateSearchAction"
+    (itemSelected)="handleSubtemplateSelection($event)"
+    [displayWithFn]="displaySubtemplateFn"
     [minCharacterCount]="1"
     [clearOnSelection]="true"
   >
   </gn-ui-autocomplete>
 
   @if (contacts.length > 0) {
-    <gn-ui-sortable-list
-      [items]="contacts"
-      (itemsOrderChange)="handleContactsChanged($event)"
-      [elementTemplate]="contactTemplate"
-    ></gn-ui-sortable-list>
-    <ng-template #contactTemplate let-contact let-index="index">
-      @if (modelSpecifier === 'contact:editableDetails') {
-        <gn-ui-contact-details-form
-          [contact]="contact"
-          (contactChange)="handleContactChanged($event, index)"
-        ></gn-ui-contact-details-form>
-      } @else {
+    @if (contacts.length === 1) {
+      @for (contact of contacts; track contact; let index = $index) {
         <gn-ui-contact-card [contact]="contact"></gn-ui-contact-card>
       }
-    </ng-template>
+    }
+    @if (contacts.length > 1) {
+      <gn-ui-sortable-list
+        [items]="contacts"
+        (itemsOrderChange)="handleContactsChanged($event)"
+        [elementTemplate]="contactTemplate"
+      ></gn-ui-sortable-list>
+      <ng-template #contactTemplate let-contact>
+        <gn-ui-contact-card [contact]="contact"></gn-ui-contact-card>
+      </ng-template>
+    }
   } @else {
     <div
       class="p-4 text-sm border border-primary bg-primary-lightest rounded-lg"

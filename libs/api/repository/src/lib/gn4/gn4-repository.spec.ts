@@ -1,8 +1,4 @@
-import {
-  DEFAULT_RECORD_CONVERTER,
-  Gn4Repository,
-  DISABLE_DRAFT,
-} from './gn4-repository'
+import { Gn4Repository } from './gn4-repository'
 import {
   RecordsApiService,
   SearchApiService,
@@ -13,7 +9,6 @@ import { fakeAsync, TestBed, tick } from '@angular/core/testing'
 import {
   EsSearchResponse,
   Gn4Converter,
-  Iso191153Converter,
 } from '@geonetwork-ui/api/metadata-converter'
 import {
   Aggregations,
@@ -128,17 +123,6 @@ const SAMPLE_RECORD = {
 const translateServiceMock = {
   currentLang: 'fr',
 }
-
-const baseProviders = [
-  Gn4Repository,
-  { provide: ElasticsearchService, useClass: ElasticsearchServiceMock },
-  { provide: SearchApiService, useClass: SearchApiServiceMock },
-  { provide: RecordsApiService, useClass: RecordsApiServiceMock },
-  { provide: Gn4Converter, useClass: Gn4MetadataMapperMock },
-  { provide: PlatformServiceInterface, useClass: PlatformServiceInterfaceMock },
-  { provide: Gn4SettingsService, useClass: Gn4SettingsServiceMock },
-  { provide: TranslateService, useValue: translateServiceMock },
-]
 
 describe('Gn4Repository', () => {
   let repository: Gn4Repository
@@ -1303,134 +1287,6 @@ describe('Gn4Repository', () => {
         .subscribe((canEdit) => {
           expect(canEdit).toEqual(false)
         })
-    })
-  })
-})
-
-describe('Gn4Repository with DISABLE_DRAFT', () => {
-  let repository: Gn4Repository
-  let gn4RecordsApi: RecordsApiService
-
-  beforeEach(() => {
-    TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
-      providers: [{ provide: DISABLE_DRAFT, useValue: true }, ...baseProviders],
-    })
-    repository = TestBed.inject(Gn4Repository)
-    gn4RecordsApi = TestBed.inject(RecordsApiService)
-    window.localStorage.clear()
-  })
-
-  describe('saveRecordAsDraft', () => {
-    it('does not write to localStorage', async () => {
-      await lastValueFrom(
-        repository.saveRecordAsDraft({
-          ...simpleDatasetRecordFixture(),
-          uniqueIdentifier: 'DRAFT-123',
-        })
-      )
-      expect(
-        window.localStorage.getItem('geonetwork-ui-draft-DRAFT-123')
-      ).toBeNull()
-    })
-    it('does not emit draftsChanged', async () => {
-      const spy = jest.spyOn(repository._draftsChanged, 'next')
-      await lastValueFrom(
-        repository.saveRecordAsDraft({
-          ...simpleDatasetRecordFixture(),
-          uniqueIdentifier: 'DRAFT-123',
-        })
-      )
-      expect(spy).not.toHaveBeenCalled()
-    })
-  })
-
-  describe('openRecordForEdition', () => {
-    beforeEach(() => {
-      window.localStorage.setItem(
-        'geonetwork-ui-draft-1234-5678',
-        simpleDatasetRecordAsXmlFixture()
-      )
-    })
-    it('loads from the server, ignoring any draft in localStorage', async () => {
-      const [, xml, savedOnce] = await lastValueFrom(
-        repository.openRecordForEdition('1234-5678')
-      )
-      expect(gn4RecordsApi.getRecordAs).toHaveBeenCalled()
-      expect(xml).toContain('1234-5678')
-      expect(xml).not.toContain('my-dataset-001')
-      expect(savedOnce).toBe(true)
-    })
-  })
-
-  describe('recordHasDraft', () => {
-    it('returns false even when a draft exists in localStorage', () => {
-      window.localStorage.setItem('geonetwork-ui-draft-DRAFT-123', 'content')
-      expect(repository.recordHasDraft('DRAFT-123')).toBe(false)
-    })
-  })
-
-  describe('clearRecordDraft', () => {
-    it('is a no-op (does not remove the draft from localStorage)', () => {
-      window.localStorage.setItem('geonetwork-ui-draft-DRAFT-123', 'content')
-      repository.clearRecordDraft('DRAFT-123')
-      expect(
-        window.localStorage.getItem('geonetwork-ui-draft-DRAFT-123')
-      ).not.toBeNull()
-    })
-    it('does not emit draftsChanged', () => {
-      const spy = jest.spyOn(repository._draftsChanged, 'next')
-      repository.clearRecordDraft('DRAFT-123')
-      expect(spy).not.toHaveBeenCalled()
-    })
-  })
-
-  describe('getAllDrafts', () => {
-    it('returns an empty array even when drafts exist in localStorage', async () => {
-      window.localStorage.setItem('geonetwork-ui-draft-1', 'content')
-      window.localStorage.setItem('geonetwork-ui-draft-2', 'content')
-      const drafts = await lastValueFrom(repository.getAllDrafts())
-      expect(drafts).toEqual([])
-    })
-  })
-
-  describe('getDraftsCount', () => {
-    it('returns 0 even when drafts exist in localStorage', async () => {
-      window.localStorage.setItem('geonetwork-ui-draft-1', 'content')
-      window.localStorage.setItem('geonetwork-ui-draft-2', 'content')
-      const count = await lastValueFrom(repository.getDraftsCount())
-      expect(count).toBe(0)
-    })
-  })
-})
-
-describe('Gn4Repository with DEFAULT_RECORD_CONVERTER', () => {
-  let repository: Gn4Repository
-  let gn4RecordsApi: RecordsApiService
-
-  beforeEach(() => {
-    TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
-      providers: [
-        {
-          provide: DEFAULT_RECORD_CONVERTER,
-          useValue: new Iso191153Converter(),
-        },
-        ...baseProviders,
-      ],
-    })
-    repository = TestBed.inject(Gn4Repository)
-    gn4RecordsApi = TestBed.inject(RecordsApiService)
-  })
-
-  describe('saveRecord', () => {
-    it('uses the configured converter when no reference source is provided', async () => {
-      ;(gn4RecordsApi.insert as jest.Mock).mockReturnValueOnce(
-        of({ metadataInfos: { 1234: [{ uuid: '1234-5678-9012' }] } })
-      )
-      await lastValueFrom(repository.saveRecord(datasetRecordsFixture()[0]))
-      const recordXml = (gn4RecordsApi.insert as jest.Mock).mock.calls[0][14]
-      expect(recordXml).toMatch('<mdb:MD_Metadata')
     })
   })
 })

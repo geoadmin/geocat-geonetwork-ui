@@ -130,6 +130,7 @@ export interface BaseRecord {
   recordUpdated: Date
   kind: RecordKind
   topics: Array<string> // TODO: handle codelists
+  subTopics: Array<string> // TODO: handle codelists
   keywords: Array<Keyword>
   licenses: Array<Constraint>
   legalConstraints: Array<Constraint>
@@ -243,6 +244,8 @@ export interface DatasetSpatialExtent {
   geometry?: Geometry
   description?: string
   translations?: SpatialExtentTranslations
+  subtemplateUuid?: string  // UUID of the GeoNetwork subtemplate if used
+  subtemplateXml?: string   // Raw XML from the subtemplate to include in metadata
 }
 
 /**
@@ -254,20 +257,10 @@ export interface DatasetTemporalExtent {
   end?: Date
 }
 
-/**
- * Represents a source dataset referenced from a lineage entry.
- */
-export interface SourceRecord {
-  uuid?: string
-  title?: string
-  href?: string
-}
-
 export interface DatasetRecord extends BaseRecord {
   kind: 'dataset'
   status: RecordStatus
   lineage: string // Explanation of the origin of this record (e.g: how, why)"
-  sourceRecords: Array<SourceRecord>
   onlineResources: Array<DatasetOnlineResource>
   spatialExtents: Array<DatasetSpatialExtent>
   temporalExtents: Array<DatasetTemporalExtent>
@@ -288,14 +281,15 @@ export type ServiceOnlineResource = (ServiceEndpoint | OnlineLinkResource) & {
 
 export interface ServiceRecord extends BaseRecord {
   kind: 'service'
+  status: RecordStatus
   onlineResources: Array<ServiceOnlineResource>
   spatialExtents: Array<DatasetSpatialExtent>
 }
 
 export interface ReuseRecord extends BaseRecord {
   kind: 'reuse'
+  status: RecordStatus
   lineage: string // Explanation of the origin of this record (e.g: how, why)"
-  sourceRecords: Array<SourceRecord>
   onlineResources: Array<DatasetOnlineResource>
   reuseType: ReuseType
   spatialExtents: Array<DatasetSpatialExtent>

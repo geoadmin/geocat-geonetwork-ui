@@ -12,8 +12,7 @@ it('gn-datahub', () => {
   cy.title().as('initialPageTitle')
 
   // should display the search bar and header buttons
-  cy.get('gn-ui-fuzzy-search', { timeout: 6000 }) // we use a higher timeout because the web component takes a while to boot in dev mode
-    .should('be.visible')
+  cy.get('gn-ui-fuzzy-search').should('be.visible')
   cy.get('datahub-navigation-menu').find('button').should('have.length', 3)
 
   // should display news page
@@ -42,11 +41,6 @@ it('gn-datahub', () => {
     'have.length.above',
     0
   )
-  cy.get('gn-ui-results-list gn-ui-results-list-item')
-    .first()
-    .find('a[href]')
-    .invoke('attr', 'href')
-    .should('contain', '#/dataset/')
   cy.get('gn-ui-filter-dropdown').should('be.visible')
   cy.title().then(function (pageTitle) {
     expect(pageTitle).to.equal(this.initialPageTitle)
@@ -54,7 +48,7 @@ it('gn-datahub', () => {
   cy.url().should('contain', '#/search')
 
   // navigate to a record
-  cy.get('gn-ui-results-list gn-ui-results-list-item').eq(7).click()
+  cy.get('gn-ui-results-list gn-ui-results-list-item').eq(0).click()
   cy.get('datahub-record-page').should('be.visible')
   cy.get('datahub-record-header').should('be.visible')
   cy.get('datahub-record-header header .font-title')
@@ -72,14 +66,7 @@ it('gn-datahub', () => {
   cy.title().then(function (pageTitle) {
     expect(pageTitle).to.equal(this.initialPageTitle)
   })
-  cy.url().should('match', /#\/(dataset|service|reuse)\//)
-
-  // check internal record links
-  cy.get('datahub-record-internal-links gn-ui-internal-link-card')
-    .first()
-    .find('a[href]')
-    .invoke('attr', 'href')
-    .should('match', /#\/(dataset|service|reuse)\//)
+  cy.url().should('contain', '#/dataset/')
 
   // reload & stay on same page
   // cy.reload()

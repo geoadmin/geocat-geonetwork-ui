@@ -7,13 +7,21 @@ import {
 import { SearchRouterContainerDirective } from '@geonetwork-ui/feature/router'
 import { Router, RouterOutlet } from '@angular/router'
 import { CommonModule, ViewportScroller } from '@angular/common'
+import { GeocatHeaderComponent } from './home/geocat-header/geocat-header.component'
 
 @Component({
   selector: 'datahub-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
   standalone: true,
-  imports: [CommonModule, RouterOutlet, SearchRouterContainerDirective],
+  imports: [
+    CommonModule,
+    RouterOutlet,
+    SearchRouterContainerDirective,
+
+    // geocat specific
+    GeocatHeaderComponent,
+  ],
 })
 export class AppComponent implements OnInit {
   private router = inject(Router)

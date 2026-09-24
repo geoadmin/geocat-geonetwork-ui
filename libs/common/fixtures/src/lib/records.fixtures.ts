@@ -92,6 +92,7 @@ Cette section contient des *caractères internationaux* (ainsi que des "caractè
       },
     ],
     topics: ['testData', 'exampleData'],
+    subTopics: [],
     spatialRepresentation: 'grid',
     onlineResources: [
       {
@@ -134,7 +135,6 @@ Cette section contient des *caractères internationaux* (ainsi que des "caractè
     lineage: `This record was edited manually to test the conversion processes
 
 As such, **it is not very interesting at all.**`,
-    sourceRecords: [],
     licenses: [
       {
         text: 'Licence ODbL mai 2013 (basée sur ODbL 1.0)',
@@ -289,6 +289,7 @@ Malgré l'attention portée à la création de ces données, il est rappelé que
       },
     ],
     topics: ['Usage des sols', "document d'urbanisme"],
+    subTopics: [],
     spatialRepresentation: 'vector',
     onlineResources: [
       {
@@ -311,7 +312,6 @@ Malgré l'attention portée à la création de ces données, il est rappelé que
     ],
     lineage: `Document d’urbanisme numérisé conformément aux prescriptions nationales du CNIG par le Service d'Information Géographique de l'Agglomération de la Région de Compiègne.
 Ce lot de données produit en 2019, a été numérisé à partir du PCI Vecteur de 2019 et contrôlé par le Service d'Information Géographique de l'Agglomération de la Région de Compiègne.`,
-    sourceRecords: [],
     legalConstraints: [],
     securityConstraints: [],
     otherConstraints: [],
@@ -354,6 +354,7 @@ export const simpleDatasetRecordFixture = (): DatasetRecord => ({
   contactsForResource: [],
   keywords: [],
   topics: ['testData'],
+  subTopics: [],
   licenses: [],
   legalConstraints: [],
   securityConstraints: [],
@@ -363,7 +364,6 @@ export const simpleDatasetRecordFixture = (): DatasetRecord => ({
   overviews: [],
   spatialExtents: [],
   temporalExtents: [],
-  sourceRecords: [],
   onlineResources: [
     {
       type: 'download',
@@ -406,6 +406,7 @@ export const simpleDatasetRecordWithFcatsFixture = (): DatasetRecord => ({
   contactsForResource: [],
   keywords: [],
   topics: ['testData'],
+  subTopics: [],
   licenses: [],
   legalConstraints: [],
   securityConstraints: [],
@@ -416,7 +417,6 @@ export const simpleDatasetRecordWithFcatsFixture = (): DatasetRecord => ({
   overviews: [],
   spatialExtents: [],
   temporalExtents: [],
-  sourceRecords: [],
   onlineResources: [],
   updateFrequency: { per: 'month', updatedTimes: 3 },
   translations: {},
@@ -844,6 +844,7 @@ export const simpleServiceRecordFixture = (): ServiceRecord => ({
   contactsForResource: [],
   keywords: [],
   topics: [],
+  subTopics: [],
   spatialExtents: [],
   overviews: [],
   defaultLanguage: null,
@@ -982,7 +983,6 @@ export const multilingualDatasetFixture: () => DatasetRecord = () => ({
   title: 'English Title',
   abstract: 'English Abstract',
   lineage: 'English Lineage',
-  sourceRecords: [],
   translations: {
     title: { fr: 'Titre Français', de: 'Titel DE' },
     abstract: { fr: 'Résumé Français', de: 'Beschreibung DE' },
@@ -1025,5 +1025,6 @@ export const multilingualDatasetFixture: () => DatasetRecord = () => ({
   uniqueIdentifier: 'ABCD-EFGH',
   overviews: [],
   topics: [],
+  subTopics: [],
   recordUpdated: null,
 })

@@ -13,6 +13,7 @@ export interface GlobalConfig {
   LANGUAGES?: string[]
   CONTACT_EMAIL?: string
   REUSE_FORM_URL?: string
+  DEEPL_API_KEY?: string
 }
 
 export interface LayerConfig {
@@ -67,13 +68,6 @@ export interface SearchConfig {
 
 export interface MetadataQualityConfig {
   ENABLED: boolean
-}
-
-export type NewRecordStandard = 'iso19139' | 'iso19115-3'
-
-export interface EditorConfig {
-  NEW_RECORD_DEFAULT_LANGUAGE?: string
-  NEW_RECORD_STANDARD?: NewRecordStandard
 }
 
 export type CustomTranslations = { [translationKey: string]: string }

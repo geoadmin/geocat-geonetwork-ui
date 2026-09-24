@@ -1,12 +1,5 @@
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-  OnDestroy,
-  OnInit,
-  viewChildren,
-} from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { EditorFacade } from '../../+state/editor.facade'
 import { EditorFieldValue } from '../../models'
 import { FormFieldComponent } from './form-field'
@@ -15,9 +8,8 @@ import {
   EditorFieldWithValue,
   EditorSectionWithValues,
 } from '../../+state/editor.models'
-import { firstValueFrom, map, Subscription, withLatestFrom } from 'rxjs'
-import { CatalogRecordKeys } from '@geonetwork-ui/common/domain/model/record'
-import { switchMap } from 'rxjs/operators'
+import { map, Observable } from 'rxjs'
+import { CatalogRecordKeys, RecordTranslations, LanguageCode } from '@geonetwork-ui/common/domain/model/record'
 
 @Component({
   selector: 'gn-ui-record-form',
@@ -27,50 +19,24 @@ import { switchMap } from 'rxjs/operators'
   standalone: true,
   imports: [CommonModule, FormFieldComponent, TranslateDirective],
 })
-export class RecordFormComponent implements OnInit, OnDestroy {
+export class RecordFormComponent {
   facade = inject(EditorFacade)
-  subscription = new Subscription()
 
   recordUniqueIdentifier$ = this.facade.record$.pipe(
     map((record) => record.uniqueIdentifier)
   )
 
-  focusFieldWithPage$ = this.facade.focusedField$.pipe(
-    switchMap(
-      async (field) => [field, await this.getPageIndexForField(field)] as const
-    )
+  recordTranslations$: Observable<RecordTranslations> = this.facade.record$.pipe(
+    map((record) => record.translations || {})
   )
 
-  formFields = viewChildren(FormFieldComponent)
+  recordDefaultLanguage$: Observable<LanguageCode> = this.facade.record$.pipe(
+    map((record) => record.defaultLanguage || 'fr')
+  )
 
-  focusField(model: CatalogRecordKeys) {
-    const fields = this.formFields()
-    const field = fields.find((f) => f.model === model)
-    field?.fieldFocus.focusField()
-  }
-
-  ngOnInit() {
-    this.subscription.add(
-      this.focusFieldWithPage$
-        .pipe(
-          withLatestFrom(
-            this.facade.currentPage$,
-            ([field, fieldPage], currentPage) =>
-              [field, fieldPage, currentPage] as const
-          )
-        )
-        .subscribe(([field, fieldPage, currentPage]) => {
-          if (fieldPage !== null && fieldPage !== currentPage) {
-            this.facade.setCurrentPage(fieldPage)
-          }
-          setTimeout(() => this.focusField(field))
-        })
-    )
-  }
-
-  ngOnDestroy() {
-    this.subscription.unsubscribe()
-  }
+  recordLanguages$: Observable<LanguageCode[]> = this.facade.record$.pipe(
+    map((record) => record.otherLanguages || [])
+  )
 
   handleFieldValueChange(model: CatalogRecordKeys, newValue: EditorFieldValue) {
     if (!model) {
@@ -79,21 +45,16 @@ export class RecordFormComponent implements OnInit, OnDestroy {
     this.facade.updateRecordField(model, newValue)
   }
 
+  handleTranslationsChange(translations: RecordTranslations) {
+    // Update translations in the record
+    this.facade.updateRecordField('translations', translations)
+  }
+
   fieldTracker(index: number, field: EditorFieldWithValue) {
     return field.config.model
   }
 
   sectionTracker(index: number, section: EditorSectionWithValues) {
     return section.labelKey
-  }
-
-  async getPageIndexForField(model: CatalogRecordKeys): Promise<number | null> {
-    const config = await firstValueFrom(this.facade.editorConfig$)
-    const pageIndex = config.pages.findIndex((page) =>
-      page.sections.some((section) =>
-        section.fields.some((field) => field.model === model)
-      )
-    )
-    return pageIndex >= 0 ? pageIndex : null
   }
 }

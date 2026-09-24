@@ -12,6 +12,7 @@ import {
 } from './editor.selectors'
 import { RecordsRepositoryInterface } from '@geonetwork-ui/common/domain/repository/records-repository.interface'
 import { PlatformServiceInterface } from '@geonetwork-ui/common/domain/platform.service.interface'
+
 @Injectable()
 export class EditorEffects {
   private actions$ = inject(Actions)

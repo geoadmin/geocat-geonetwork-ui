@@ -8,10 +8,7 @@ import {
 } from '@angular/core'
 import {
   CatalogRecord,
-  Individual,
   Keyword,
-  Role,
-  RoleLabels,
 } from '@geonetwork-ui/common/domain/model/record'
 import { DateService, getTemporalRangeUnion } from '@geonetwork-ui/util/shared'
 import { MarkdownParserComponent } from '../markdown-parser/markdown-parser.component'
@@ -22,18 +19,17 @@ import {
 import { TranslateDirective, TranslatePipe } from '@ngx-translate/core'
 import {
   BadgeComponent,
-  ButtonComponent,
   CopyTextButtonComponent,
 } from '@geonetwork-ui/ui/inputs'
 import { ContentGhostComponent } from '../content-ghost/content-ghost.component'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import { matOpenInNew } from '@ng-icons/material-icons/baseline'
 import { matMailOutline } from '@ng-icons/material-icons/outline'
+import { ThumbnailComponent } from '../thumbnail/thumbnail.component'
 import { GnUiLinkifyDirective } from './linkify.directive'
 import { GnUiHumanizeDateDirective } from '@geonetwork-ui/util/shared'
 
 import { SpatialExtentComponent } from '@geonetwork-ui/ui/map'
-import { ContactPillComponent } from '../contact-pill/contact-pill.component'
 
 @Component({
   selector: 'gn-ui-metadata-info',
@@ -46,16 +42,15 @@ import { ContactPillComponent } from '../contact-pill/contact-pill.component'
     TranslatePipe,
     MarkdownParserComponent,
     ExpandablePanelComponent,
-    ButtonComponent,
     BadgeComponent,
     ContentGhostComponent,
+    ThumbnailComponent,
     MaxLinesComponent,
     CopyTextButtonComponent,
     NgIcon,
     GnUiLinkifyDirective,
     GnUiHumanizeDateDirective,
     SpatialExtentComponent,
-    ContactPillComponent,
   ],
   viewProviders: [
     provideIcons({
@@ -137,31 +132,23 @@ export class MetadataInfoComponent {
     return getTemporalRangeUnion(temporalExtents, this.dateService)
   }
 
-  fieldReady(propName: string) {
-    return !this.incomplete || propName in this.metadata
+  get shownOrganization() {
+    return this.metadata.ownerOrganization
   }
 
-  get contactGroups(): {
-    role: Role
-    roleLabel: string
-    contacts: Individual[]
-  }[] {
-    const groups: { role: Role; roleLabel: string; contacts: Individual[] }[] =
-      []
-    const indexByRole = new Map<Role, number>()
-    for (const contact of this.metadata.contactsForResource ?? []) {
-      if (indexByRole.has(contact.role)) {
-        groups[indexByRole.get(contact.role)].contacts.push(contact)
-      } else {
-        indexByRole.set(contact.role, groups.length)
-        groups.push({
-          role: contact.role,
-          roleLabel: RoleLabels.get(contact.role),
-          contacts: [contact],
-        })
-      }
-    }
-    return groups
+  get resourceContact() {
+    return this.metadata.contactsForResource?.[0]
+  }
+
+  // geocat specific
+  get metadataLandingPageAdvanced() {
+    return (
+      this.metadata.landingPage + `/formatters/xsl-view?root=div&view=advanced`
+    )
+  }
+
+  fieldReady(propName: string) {
+    return !this.incomplete || propName in this.metadata
   }
 
   onKeywordClick(keyword: Keyword) {

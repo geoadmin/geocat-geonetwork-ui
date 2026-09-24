@@ -1,4 +1,8 @@
-import { FieldsService, SearchFacade } from '@geonetwork-ui/feature/search'
+import {
+  FieldsService,
+  LocationBbox,
+  SearchFacade,
+} from '@geonetwork-ui/feature/search'
 import {
   SortByEnum,
   SortByField,
@@ -7,6 +11,8 @@ import { BehaviorSubject, of } from 'rxjs'
 import { RouterFacade } from '../state/router.facade'
 import { RouterSearchService } from './router-search.service'
 import { TestBed } from '@angular/core/testing'
+import { RouterService } from '../router.service'
+import { ROUTER_CONFIG } from '../router.config'
 
 let state = {}
 class SearchFacadeMock {
@@ -20,6 +26,7 @@ class SearchFacadeMock {
 class RouterFacadeMock {
   setSearch = jest.fn()
   updateSearch = jest.fn()
+  go = jest.fn()
 }
 
 class FieldsServiceMock {
@@ -48,6 +55,10 @@ class FieldsServiceMock {
   )
 }
 
+class RouterServiceMock {
+  getSearchRoute = jest.fn().mockReturnValue('/test/path')
+}
+
 describe('RouterSearchService', () => {
   let service: RouterSearchService
   let routerFacade: RouterFacade
@@ -68,6 +79,8 @@ describe('RouterSearchService', () => {
         { provide: RouterFacade, useValue: routerFacade },
         { provide: SearchFacade, useValue: searchFacade },
         { provide: FieldsService, useValue: fieldsService },
+        { provide: RouterService, useClass: RouterServiceMock },
+        { provide: ROUTER_CONFIG, useValue: {} },
       ],
     })
     service = TestBed.inject(RouterSearchService)
@@ -164,6 +177,42 @@ describe('RouterSearchService', () => {
           publisher: ['mel'],
           _sort: '-_score',
         })
+      })
+    })
+  })
+
+  describe('#setLocationFilter', () => {
+    beforeEach(() => {
+      const location: LocationBbox = {
+        label: 'New location',
+        bbox: [4, 5, 6, 7],
+      }
+      service.setLocationFilter(location)
+    })
+    it('dispatch setLocationFilter with merged mapped params', () => {
+      expect(routerFacade.go).toHaveBeenCalledWith({
+        path: '/test/path',
+        query: {
+          location: 'New location',
+          bbox: '4,5,6,7',
+        },
+        queryParamsHandling: 'merge',
+      })
+    })
+  })
+
+  describe('#clearLocationFilter', () => {
+    beforeEach(() => {
+      service.clearLocationFilter()
+    })
+    it('dispatch clearLocationFilter with merged mapped params', () => {
+      expect(routerFacade.go).toHaveBeenCalledWith({
+        path: '/test/path',
+        query: {
+          location: undefined,
+          bbox: undefined,
+        },
+        queryParamsHandling: 'merge',
       })
     })
   })

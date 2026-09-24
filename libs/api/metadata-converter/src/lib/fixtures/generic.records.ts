@@ -192,7 +192,6 @@ Cette section contient des *caractères internationaux* (ainsi que des "caractè
   lineage: `This record was edited manually to test the conversion processes
 
 As such, **it is not very interesting at all.**`,
-  sourceRecords: [],
   otherConstraints: [
     { text: 'Should only be used as a testing tool', translations: {} },
     { text: 'Might cause minor annoyance in people', translations: {} },

@@ -8,7 +8,6 @@ import {
   Individual,
   Keyword,
   LanguageCode,
-  SourceRecord,
   RecordStatus,
   RecordTranslations,
   ReuseRecord,
@@ -56,6 +55,7 @@ import { writeGeometry } from './utils/geometry'
 import { namePartsToFull } from './utils/individual-name'
 import { toLang3 } from '@geonetwork-ui/util/i18n/language-codes'
 import { kindToCodeListValue } from '../common/resource-types'
+import { getOpenDataLicense, isOpenDataLicense, findLicenseCodeByText } from '../common/opendata-licenses'
 
 function writeLocalizedElement(
   writeFn: ChainableFunction<XmlElement, XmlElement>,
@@ -690,6 +690,79 @@ export function removeLicenses() {
   )
 }
 
+/**
+ * Create a CHE-profile license with multilingual translations and OpenData reference URL
+ * Generates che:CHE_MD_LegalConstraints with gcx:Anchor and lan:PT_FreeText
+ * Structure:
+ * - che:CHE_MD_LegalConstraints with gco:isoType="mco:MD_LegalConstraints"
+ * - mco:useConstraints with codeListValue="otherRestrictions"
+ * - First mco:otherConstraints: gcx:Anchor (with license URL) + lan:PT_FreeText (multilingual license text)
+ * - Second mco:otherConstraints: gco:CharacterString (license URL) + lan:PT_FreeText (multilingual URL)
+ */
+export function createCHELicense(
+  license: Constraint,
+  licenseCode: string,
+  defaultLanguage: LanguageCode
+) {
+  // Get OpenData license config with translations
+  const openDataLicense = getOpenDataLicense(licenseCode)
+  const licenseUrl = String(openDataLicense?.url || license.url || '')
+
+  // Helper to create text group with localized character string
+  function createTextGroup(locale: string, text: string) {
+    return pipe(
+      createNestedElement('lan:textGroup', 'lan:LocalisedCharacterString'),
+      writeAttribute('locale', `#${locale}`),
+      setTextContent(text)
+    )
+  }
+
+  // Create first otherConstraints: gcx:Anchor with license text and multilingual translations
+  const createLicenseConstraint = pipe(
+    createElement('mco:otherConstraints'),
+    writeAttribute('xsi:type', 'lan:PT_FreeText_PropertyType'),
+    appendChildren(
+      // Add gcx:Anchor with URL pointing to OpenData.swiss terms
+      pipe(
+        createElement('gcx:Anchor'),
+        writeAttribute('xlink:href', licenseUrl),
+        setTextContent(openDataLicense?.translations.en || license.text)
+      ),
+      // Add PT_FreeText with all language translations
+      pipe(
+        createElement('lan:PT_FreeText'),
+        appendChildren(
+          // Create text groups for each available translation
+          ...(openDataLicense
+            ? Object.entries(openDataLicense.translations).map(([lang, text]) =>
+                createTextGroup(lang.toUpperCase(), text)
+              )
+            : [createTextGroup(defaultLanguage.toUpperCase(), license.text)])
+        )
+      )
+    )
+  )
+
+  // Create the full MD_LegalConstraints structure with CHE extension
+  return pipe(
+    createNestedElement('mri:resourceConstraints', 'che:CHE_MD_LegalConstraints'),
+    writeAttribute('gco:isoType', 'mco:MD_LegalConstraints'),
+    appendChildren(
+      // Use constraint with "otherRestrictions"
+      pipe(
+        createNestedElement('mco:useConstraints', 'mco:MD_RestrictionCode'),
+        writeAttribute(
+          'codeList',
+          'http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#MD_RestrictionCode'
+        ),
+        writeAttribute('codeListValue', 'otherRestrictions')
+      ),
+      // otherConstraints with license text, URL anchor, and multilingual translations
+      createLicenseConstraint
+    )
+  )
+}
+
 export function createLicense(
   license: Constraint,
   defaultLanguage: LanguageCode
@@ -978,9 +1051,25 @@ export function writeLicenses(record: CatalogRecord, rootEl: XmlElement) {
     findOrCreateIdentification(),
     removeLicenses(),
     appendChildren(
-      ...record.licenses.map((license) =>
-        createLicense(license, record.defaultLanguage)
-      )
+      ...record.licenses.map((license) => {
+        // Try to find the OpenData license code from the license text
+        const licenseCode = findLicenseCodeByText(license.text)
+
+        // Debug logging
+        console.log('License processing:', {
+          licenseText: license.text,
+          detectedCode: licenseCode,
+          isOpenData: licenseCode ? isOpenDataLicense(licenseCode) : false
+        })
+
+        // Use CHE format for OpenData licenses, otherwise use standard format
+        if (licenseCode && isOpenDataLicense(licenseCode)) {
+          console.log('Using CHE license format for:', licenseCode)
+          return createCHELicense(license, licenseCode, record.defaultLanguage)
+        }
+        console.log('Using standard license format')
+        return createLicense(license, record.defaultLanguage)
+      })
     )
   )(rootEl)
 }
@@ -1229,38 +1318,6 @@ export function writeLineage(record: DatasetRecord, rootEl: XmlElement) {
       record.translations?.lineage,
       record.defaultLanguage
     )
-  )(rootEl)
-}
-
-export function appendSourceRecords(
-  sources: SourceRecord[]
-): ChainableFunction<XmlElement, XmlElement> {
-  return pipe(
-    removeChildrenByName('gmd:source'),
-    appendChildren(
-      ...sources
-        .filter((source) => source.uuid || source.title || source.href)
-        .map((source) =>
-          pipe(
-            createElement('gmd:source'),
-            source.uuid ? writeAttribute('uuidref', source.uuid) : noop,
-            source.title ? writeAttribute('xlink:title', source.title) : noop,
-            source.href ? writeAttribute('xlink:href', source.href) : noop
-          )
-        )
-    )
-  )
-}
-
-export function writeSourceRecords(record: DatasetRecord, rootEl: XmlElement) {
-  pipe(
-    findNestedChildOrCreate(
-      'gmd:dataQualityInfo',
-      'gmd:DQ_DataQuality',
-      'gmd:lineage',
-      'gmd:LI_Lineage'
-    ),
-    appendSourceRecords(record.sourceRecords)
   )(rootEl)
 }
 

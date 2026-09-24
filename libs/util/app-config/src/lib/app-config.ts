@@ -1,8 +1,6 @@
 import * as TOML from '@ltd/j-toml'
 import {
   checkMetadataLanguage,
-  checkNewRecordDefaultLanguage,
-  checkNewRecordStandard,
   parseConfigSection,
   parseMultiConfigSection,
   parseTranslationsConfigSection,
@@ -10,7 +8,6 @@ import {
 import {
   CustomTranslations,
   CustomTranslationsAllLanguages,
-  EditorConfig,
   GlobalConfig,
   LayerConfig,
   MapConfig,
@@ -52,12 +49,6 @@ let searchConfig: SearchConfig = null
 
 export function getOptionalSearchConfig(): SearchConfig | null {
   return searchConfig
-}
-
-let editorConfig: EditorConfig = null
-
-export function getOptionalEditorConfig(): EditorConfig | null {
-  return editorConfig
 }
 
 let metadataQualityConfig: MetadataQualityConfig = null
@@ -116,6 +107,7 @@ export function loadAppConfig(configUrl = 'assets/configuration/default.toml') {
           'languages',
           'contact_email',
           'reuse_form_url',
+          'deepl_api_key'
         ],
         warnings,
         errors
@@ -147,6 +139,7 @@ export function loadAppConfig(configUrl = 'assets/configuration/default.toml') {
               LANGUAGES: parsedGlobalSection.languages,
               CONTACT_EMAIL: parsedGlobalSection.contact_email,
               REUSE_FORM_URL: parsedGlobalSection.reuse_form_url,
+              DEEPL_API_KEY: parsedGlobalSection.deepl_api_key
             } as GlobalConfig)
 
       const parsedLayersSections = parseMultiConfigSection(
@@ -294,45 +287,6 @@ export function loadAppConfig(configUrl = 'assets/configuration/default.toml') {
               SORTABLE: parsedMetadataQualitySection.sortable,
             } as MetadataQualityConfig)
 
-      let parsedEditingSection = parseConfigSection(
-        parsed,
-        'editing',
-        [],
-        ['new_record_default_language', 'new_record_standard'],
-        warnings,
-        errors
-      )
-      if (
-        parsedEditingSection !== null &&
-        parsedEditingSection.new_record_default_language !== undefined
-      ) {
-        parsedEditingSection = checkNewRecordDefaultLanguage(
-          parsedEditingSection,
-          warnings
-        )
-      }
-      if (
-        parsedEditingSection !== null &&
-        parsedEditingSection.new_record_standard !== undefined
-      ) {
-        parsedEditingSection = checkNewRecordStandard(
-          parsedEditingSection,
-          warnings
-        )
-      }
-      editorConfig =
-        parsedEditingSection === null
-          ? null
-          : ({
-              NEW_RECORD_DEFAULT_LANGUAGE:
-                parsedEditingSection.new_record_default_language as
-                  | string
-                  | undefined,
-              NEW_RECORD_STANDARD: parsedEditingSection.new_record_standard as
-                | EditorConfig['NEW_RECORD_STANDARD']
-                | undefined,
-            } as EditorConfig)
-
       customTranslations = parseTranslationsConfigSection(
         parsed,
         'translations'
@@ -357,7 +311,6 @@ export function isConfigLoaded() {
 export function _reset() {
   globalConfig = null
   themeConfig = null
-  editorConfig = null
   customTranslations = null
 }
 

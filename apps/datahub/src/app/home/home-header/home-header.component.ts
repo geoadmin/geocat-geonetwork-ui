@@ -1,8 +1,9 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  Input,
   inject,
+  Input,
+  ViewChild,
 } from '@angular/core'
 import { marker } from '@biesbjerg/ngx-translate-extract-marker'
 import {
@@ -12,6 +13,7 @@ import {
 import {
   FieldsService,
   FuzzySearchComponent,
+  LocationSearchComponent,
   SearchFacade,
   SearchService,
 } from '@geonetwork-ui/feature/search'
@@ -38,7 +40,6 @@ import { TranslateDirective, TranslatePipe } from '@ngx-translate/core'
 import { HeaderBadgeButtonComponent } from '../header-badge-button/header-badge-button.component'
 import { RouterLink } from '@angular/router'
 import { NavigationMenuComponent } from '../navigation-menu/navigation-menu.component'
-import { LanguageSwitcherComponent } from '@geonetwork-ui/ui/catalog'
 import { provideIcons, provideNgIconsConfig } from '@ng-icons/core'
 import { matStarOutline } from '@ng-icons/material-icons/outline'
 
@@ -60,8 +61,9 @@ marker('datahub.header.popularRecords')
     HeaderBadgeButtonComponent,
     RouterLink,
     NavigationMenuComponent,
-    LanguageSwitcherComponent,
+    // LanguageSwitcherComponent,
     FuzzySearchComponent,
+    LocationSearchComponent,
   ],
   providers: [
     provideIcons({
@@ -80,6 +82,11 @@ export class HomeHeaderComponent {
   private fieldsService = inject(FieldsService)
 
   @Input() expandRatio: number
+
+  // specific geocat: used to trigger the other field when one is triggered
+  @ViewChild(FuzzySearchComponent)
+  textSearch: FuzzySearchComponent
+  @ViewChild(LocationSearchComponent) locationSearch: LocationSearchComponent
 
   backgroundCss =
     getThemeConfig().HEADER_BACKGROUND ||
@@ -133,5 +140,13 @@ export class HomeHeaderComponent {
     } else {
       this.searchService.setFilters(searchFilters)
     }
+  }
+
+  // specific geocat
+  updateLocationFilter() {
+    this.locationSearch.trigger()
+  }
+  updateTextFilter() {
+    this.textSearch.trigger()
   }
 }

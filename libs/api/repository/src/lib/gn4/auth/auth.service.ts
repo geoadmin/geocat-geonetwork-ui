@@ -44,10 +44,6 @@ export class AuthService {
           window.location.href
         ).toString()
       )
-      .replace(
-        '${current_path}',
-        this.location.prepareExternalUrl(this.location.path())
-      )
       .replace('${lang2}', toLang2(this.translateService.currentLang))
       .replace('${lang3}', toLang3(this.translateService.currentLang))
   }

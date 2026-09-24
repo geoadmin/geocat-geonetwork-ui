@@ -39,8 +39,6 @@ class EditorFacadeMock {
   pagesCount$ = new BehaviorSubject(2)
   hasRecordChanged$ = new BehaviorSubject(false)
   saveRecord = jest.fn()
-  setCurrentPage = jest.fn()
-  checkHasRecordChanged = jest.fn()
 }
 class NotificationsServiceMock {
   showNotification = jest.fn()

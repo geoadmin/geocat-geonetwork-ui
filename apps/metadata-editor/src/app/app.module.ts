@@ -14,8 +14,8 @@ import {
   provideGn4,
   provideRepositoryUrl,
   SETTINGS_URL,
-  DEFAULT_RECORD_CONVERTER,
 } from '@geonetwork-ui/api/repository'
+import { DEEPL_API_KEY } from '@geonetwork-ui/api/metadata-converter'
 import { FeatureEditorModule } from '@geonetwork-ui/feature/editor'
 import { FeatureRecordModule } from '@geonetwork-ui/feature/record'
 import {
@@ -24,11 +24,7 @@ import {
   SearchRouterContainerDirective,
 } from '@geonetwork-ui/feature/router'
 import { FeatureSearchModule } from '@geonetwork-ui/feature/search'
-import {
-  getGlobalConfig,
-  getThemeConfig,
-  getOptionalEditorConfig,
-} from '@geonetwork-ui/util/app-config'
+import { getGlobalConfig, getThemeConfig } from '@geonetwork-ui/util/app-config'
 import { provideI18n } from '@geonetwork-ui/util/i18n'
 import {
   handleScrollOnNavigation,
@@ -41,10 +37,6 @@ import { appRoutes } from './app.routes'
 import { extModules } from './build-specifics'
 import { DashboardPageComponent } from './dashboard/dashboard-page.component'
 import { EditorRouterService } from './router.service'
-import {
-  Iso19139Converter,
-  Iso191153Converter,
-} from '@geonetwork-ui/api/metadata-converter'
 
 @NgModule({
   declarations: [AppComponent],
@@ -84,13 +76,6 @@ import {
     provideRepositoryUrl(() => getGlobalConfig().GN4_API_URL),
     importProvidersFrom(EffectsModule.forRoot()),
     provideGn4(),
-    {
-      provide: DEFAULT_RECORD_CONVERTER,
-      useFactory: () =>
-        getOptionalEditorConfig()?.NEW_RECORD_STANDARD === 'iso19115-3'
-          ? new Iso191153Converter()
-          : new Iso19139Converter(),
-    },
     provideAnimations(),
     {
       provide: LOGIN_URL,
@@ -103,6 +88,10 @@ import {
     {
       provide: SETTINGS_URL,
       useFactory: () => getGlobalConfig().SETTINGS_URL,
+    },
+    {
+      provide: DEEPL_API_KEY,
+      useFactory: () => getGlobalConfig().DEEPL_API_KEY || '',
     },
   ],
   bootstrap: [AppComponent],

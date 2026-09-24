@@ -74,10 +74,7 @@
     --bg-hover: var(--gn-ui-button-bg-hover, var(--color-background));
     --font-size: var(--gn-ui-button-font-size, 1em);
     --color: var(--gn-ui-button-color, var(--color-main));
-    --disabled-opacity: var(--gn-ui-button-disabled-opacity, 0.5);
-    --justify: var(--gn-ui-button-justify, center);
-    justify-content: var(--justify);
-    @apply flex flex-row items-center
+    @apply flex flex-row items-center justify-center
       text-[length:--font-size] leading-none
       text-[color:--color]
       p-[--padding] rounded-[--rounded] w-[--width] h-[--height] overflow-hidden
@@ -85,7 +82,7 @@
       hover:bg-[--bg-hover] focus:bg-[--bg-hover] active:bg-[--background]
       outline-none
       relative
-      disabled:opacity-[--disabled-opacity] disabled:pointer-events-none
+      disabled:opacity-50 disabled:pointer-events-none
       focus:z-10 active:z-10 hover:z-10;
   }
   /* makes sure icons will not make the buttons grow vertically */
@@ -135,12 +132,6 @@
     @apply gn-ui-btn
       hover:bg-gray-50 focus:bg-gray-50 active:bg-gray-100
       bg-white border-white focus:ring-4 focus:ring-gray-300;
-  }
-
-  .gn-ui-btn-primary-light {
-    @apply gn-ui-btn text-primary-darkest
-      bg-primary-white hover:bg-primary focus:bg-primary hover:text-white focus:text-white active:bg-primary-darker
-      border-transparent;
   }
 
   .gn-ui-card-s {

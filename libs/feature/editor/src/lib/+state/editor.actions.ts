@@ -1,7 +1,6 @@
 import { createAction, props } from '@ngrx/store'
 import {
   CatalogRecord,
-  CatalogRecordKeys,
   LanguageCode,
 } from '@geonetwork-ui/common/domain/model/record'
 import { SaveRecordError } from './editor.models'
@@ -73,9 +72,4 @@ export const isPublished = createAction(
 export const canEditRecord = createAction(
   '[Editor] User can edit record',
   props<{ canEditRecord: boolean }>()
-)
-
-export const setFocusedField = createAction(
-  '[Editor] Set focused field',
-  props<{ model: CatalogRecordKeys }>()
 )

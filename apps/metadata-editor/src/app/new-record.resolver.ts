@@ -3,6 +3,7 @@ import {
   CatalogRecord,
   Individual,
   Organization,
+  LanguageCode,
 } from '@geonetwork-ui/common/domain/model/record'
 import { Observable, of } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
@@ -10,7 +11,6 @@ import { PlatformServiceInterface } from '@geonetwork-ui/common/domain/platform.
 import { OrganizationsServiceInterface } from '@geonetwork-ui/common/domain/organizations.service.interface'
 import { TranslateService } from '@ngx-translate/core'
 import { NOT_KNOWN_CONSTRAINT } from '@geonetwork-ui/feature/editor'
-import { getOptionalEditorConfig } from '@geonetwork-ui/util/app-config'
 
 @Injectable({
   providedIn: 'root',
@@ -21,11 +21,21 @@ export class NewRecordResolver {
   private translateService = inject(TranslateService)
 
   resolve(): Observable<[CatalogRecord, string, boolean]> {
-    const defaultLang =
-      getOptionalEditorConfig()?.NEW_RECORD_DEFAULT_LANGUAGE ??
-      this.translateService.currentLang
     return this.getCurrentUserAsPointOfContact().pipe(
       map((userContact) => {
+        // Get current app language, default to 'en' if not available
+        const currentLang = (this.translateService.currentLang ||
+          this.translateService.defaultLang ||
+          'en') as LanguageCode
+
+        // Supported languages
+        const supportedLanguages: LanguageCode[] = ['fr', 'de', 'it', 'en', 'rm']
+
+        // Other languages = all supported languages except the current/default one
+        const otherLanguages = supportedLanguages.filter(
+          (lang) => lang !== currentLang
+        )
+
         const catalogRecord: CatalogRecord = {
           uniqueIdentifier: null,
           title: this.translateService.instant('editor.new.record.title'),
@@ -35,10 +45,20 @@ export class NewRecordResolver {
           },
           contacts: userContact ? [userContact] : [],
           recordUpdated: new Date(),
+          recordCreated: new Date(),
+          recordPublished: new Date(),
+          resourceUpdated: new Date(),
+          resourceCreated: new Date(),
+          resourcePublished: new Date(),
           updateFrequency: 'unknown',
-          otherLanguages: [],
-          defaultLanguage: defaultLang,
+          otherLanguages: otherLanguages,
+          defaultLanguage: currentLang,
+          translations: {
+            title: {},
+            abstract: {},
+          },
           topics: [],
+          subTopics: [],
           keywords: [],
           licenses: [],
           legalConstraints: [NOT_KNOWN_CONSTRAINT],
@@ -49,7 +69,6 @@ export class NewRecordResolver {
           kind: 'dataset',
           status: 'ongoing',
           lineage: '',
-          sourceRecords: [],
           onlineResources: [],
           spatialExtents: [],
           temporalExtents: [],

@@ -62,10 +62,7 @@ export class UrlInputComponent implements OnChanges {
   inputValue = ''
 
   ngOnChanges(changes: SimpleChanges) {
-    if (
-      changes['resetUrlOnChange'] &&
-      !changes['resetUrlOnChange'].firstChange
-    ) {
+    if (changes['resetUrlOnChange']) {
       this.inputValue = ''
     }
   }
@@ -81,8 +78,7 @@ export class UrlInputComponent implements OnChanges {
     this.valueChange.next(value)
   }
 
-  handleUpload(element: HTMLInputElement, event: Event) {
-    event.stopPropagation()
+  handleUpload(element: HTMLInputElement) {
     const value = element.value
     if (!value || !this.isValidUrl(value)) return
     this.uploadClick.next(value)

@@ -257,10 +257,9 @@ describe('MapContainerComponent', () => {
           view: mapCtxFixture().view,
         }
       )
-      expect(applyContextDiffToMap).toHaveBeenCalledWith(
-        await component.openlayersMap,
-        { 'this is': 'a diff' }
-      )
+      expect(applyContextDiffToMap).toHaveBeenCalledWith(component.olMap, {
+        'this is': 'a diff',
+      })
     })
     describe('resolvedExtentChange emission on view changes', () => {
       it('emits resolvedExtentChange when viewChanges is true and output is subscribed to', async () => {

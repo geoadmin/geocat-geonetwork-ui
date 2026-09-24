@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, inject, Input } from '@angular/core'
+import { Component, Input } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { Geometry } from 'geojson'
 import { GeoJSONFeatureCollection } from 'ol/format/GeoJSON.js'
@@ -10,8 +10,8 @@ import {
   MapContextLayer,
 } from '@geospatial-sdk/core'
 import { MapContainerComponent } from '../map-container/map-container.component'
-import { BehaviorSubject, from, Observable, of } from 'rxjs'
-import { map, switchMap, tap } from 'rxjs/operators'
+import { BehaviorSubject, Observable } from 'rxjs'
+import { switchMap } from 'rxjs/operators'
 import { DatasetSpatialExtent } from '@geonetwork-ui/common/domain/model/record'
 
 @Component({
@@ -22,16 +22,14 @@ import { DatasetSpatialExtent } from '@geonetwork-ui/common/domain/model/record'
   styleUrl: './spatial-extent.component.css',
 })
 export class SpatialExtentComponent {
-  private _cdr = inject(ChangeDetectorRef)
-
   @Input() set spatialExtents(value: DatasetSpatialExtent[]) {
     this.spatialExtents$.next(value)
   }
   spatialExtents$ = new BehaviorSubject<DatasetSpatialExtent[]>([])
   mapContext$: Observable<MapContext> = this.spatialExtents$.pipe(
-    switchMap((extents) => {
+    switchMap(async (extents) => {
       if (extents.length === 0) {
-        return of(null)
+        return null // null extent means default view
       }
       const featureCollection: GeoJSONFeatureCollection = {
         type: 'FeatureCollection',
@@ -44,14 +42,22 @@ export class SpatialExtentComponent {
             properties: {},
             geometry: extent.geometry,
           })
-        } else if (extent.bbox?.length >= 0) {
+        } else if (extent.bbox && Array.isArray(extent.bbox) && extent.bbox.length === 4) {
           featureCollection.features.push({
             type: 'Feature',
             properties: {},
             geometry: this.bboxCoordsToGeometry(extent.bbox),
           })
+        } else {
+          console.warn('Extent has no valid geometry or bbox:', extent)
         }
       })
+
+      // If no features could be created, return default view instead of error
+      if (featureCollection.features.length === 0) {
+        console.warn('No valid features in feature collection, using default map view')
+        return null // null context means default view
+      }
 
       const layer: MapContextLayer = {
         type: 'geojson',
@@ -63,10 +69,11 @@ export class SpatialExtentComponent {
           'fill-color': 'rgba(153, 153, 153, 0.3)',
         },
       }
-      return from(createViewFromLayer(layer)).pipe(
-        map((view) => ({ view, layers: [layer] }) as MapContext),
-        tap(() => this._cdr.markForCheck())
-      )
+      const view = await createViewFromLayer(layer)
+      return {
+        view,
+        layers: [layer],
+      }
     })
   )
 

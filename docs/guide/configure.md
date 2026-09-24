@@ -67,8 +67,6 @@ Some additional notes:
 
   - `${current_url}`: replaced by the current browser URL
 
-  - `${current_path}`: replaced by the _path component_ of the current browser URL; in a URL like https://my.host.org/hello/world?param=value, the _path component_ is `/hello/world?param=value` (it includes anything after the first `/`, including query params and hash fragments)
-
   - `${lang2}`, `${lang3}`: replaced by the ISO-639 code of the current language, respectively in 2- or 3-characters format
 
   Example for a platform relying on CAS:
@@ -267,32 +265,6 @@ To show Metadata Quality scores on records and allow sorting, enabling the setti
 - `enabled` (optional)
 
   By default, the widget is not activated; to enable it, just set this parameter to "true".
-
-#### `[editing]`
-
-This section contains settings for metadata editing behavior in the Metadata Editor application.
-
-- `new_record_default_language` (optional)
-
-  Defines the default language assigned to newly created metadata records (e.g. `en`, `fr`, `de`).
-
-  If not set, defaults to the current UI language.
-
-  ```toml
-  [editing]
-  new_record_default_language = "fr"
-  ```
-
-- `new_record_standard` (optional)
-
-  Defines the metadata standard used when creating new records. Accepted values are `iso19139` and `iso19115-3`.
-
-  If not set, defaults to `iso19139`.
-
-  ```toml
-  [editing]
-  new_record_standard = "iso19115-3"
-  ```
 
 #### `[map]`
 

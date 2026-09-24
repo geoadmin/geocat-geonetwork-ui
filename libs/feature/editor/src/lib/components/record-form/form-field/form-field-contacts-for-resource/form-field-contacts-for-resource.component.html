@@ -8,14 +8,6 @@
       </gn-ui-button>
     }
   </div>
-  @if (value.length === 0) {
-    <div
-      class="p-4 border border-primary bg-primary-lightest rounded-lg"
-      translate
-    >
-      editor.record.form.field.contactsForResource.noContact
-    </div>
-  }
   @if (roleSectionsToDisplay && roleSectionsToDisplay.length > 0) {
     <div class="mt-8" data-test="displayedRoles">
       @for (
@@ -36,9 +28,9 @@
                 'editor.record.form.field.contactsForResource.placeholder'
                   | translate
               "
-              [action]="autoCompleteAction"
-              (itemSelected)="addContact($event, role)"
-              [displayWithFn]="displayWithFn"
+              [action]="subtemplateSearchAction"
+              (itemSelected)="handleSubtemplateSelection($event, role)"
+              [displayWithFn]="displaySubtemplateFn"
               [minCharacterCount]="1"
               [clearOnSelection]="true"
               [allowSubmit]="false"
@@ -60,6 +52,13 @@
           }
         </div>
       }
+    </div>
+  } @else {
+    <div
+      class="p-4 border border-primary bg-primary-lightest rounded-lg"
+      translate
+    >
+      editor.record.form.field.contactsForResource.noContact
     </div>
   }
 </div>
