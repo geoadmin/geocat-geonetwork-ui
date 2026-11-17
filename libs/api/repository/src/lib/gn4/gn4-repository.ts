@@ -461,9 +461,12 @@ export class Gn4Repository implements RecordsRepositoryInterface {
       switchMap(() => this.serializeRecordToXml(record, referenceRecordSource)),
       switchMap((recordXml) => {
         // Extract groupOwner from extras (for duplication/creation to work properly)
-        const groupOwner = record.extras?.['groupOwner'] as string | undefined
+        // For new records, use a default group if not specified
+        const groupOwner = (record.extras?.['groupOwner'] as string | undefined) || '2'
         // For new records (no UUID), use GENERATEUUID; for existing records, use OVERWRITE
         const uuidProcessing = record.uniqueIdentifier ? 'OVERWRITE' : 'GENERATEUUID'
+        // Determine schema: use reference schema if available, otherwise default to iso19115-3-che
+        const schema = referenceRecordSource ? undefined : 'iso19115-3-che'
         return this.gn4RecordsApi.insert(
           'METADATA',
           undefined,
@@ -476,7 +479,7 @@ export class Gn4Repository implements RecordsRepositoryInterface {
           undefined,
           undefined,
           undefined,
-          undefined,
+          schema,
           undefined,
           undefined,
           recordXml
