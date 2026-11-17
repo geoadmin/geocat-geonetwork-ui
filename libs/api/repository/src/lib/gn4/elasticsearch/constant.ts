@@ -9,6 +9,8 @@ export const ES_SOURCE_SUMMARY = [
   'logo',
   'link',
   'linkProtocol',
+  'format',
+  'featureTypes',
   'contactForResource*.organisation*',
   'contact*.organisation*',
   'contact*.email',

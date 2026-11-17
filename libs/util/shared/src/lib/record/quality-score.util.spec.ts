@@ -1,4 +1,4 @@
-import { CatalogRecord } from '@geonetwork-ui/common/domain/model/record'
+import { CatalogRecord, DatasetDownloadDistribution, DatasetServiceDistribution, Individual, Keyword } from '@geonetwork-ui/common/domain/model/record'
 
 import {
   ValidatorMapperKeys,
@@ -11,23 +11,65 @@ describe('Metadata Validators', () => {
     kind: 'dataset',
     title: 'Test title',
     abstract: 'Test abstract',
-    keywords: ['keyword1', 'keyword2'],
-    legalConstraints: [{ type: 'license', text: 'MIT' }],
+    keywords: [{ label: 'keyword1', type: 'other' }, { label: 'keyword2', type: 'other' }] as Keyword[],
+    legalConstraints: [{ text: 'MIT' }],
     contacts: [
       {
         email: 'test@example.com',
         organization: { name: 'Test Org' },
+        role: 'point_of_contact',
+        firstName: '',
+        lastName: '',
       },
-    ],
+    ] as Individual[],
+    contactsForResource: [
+      {
+        role: 'point_of_contact',
+        email: 'contact@example.com',
+        organization: { name: 'Test Org' },
+        firstName: '',
+        lastName: '',
+      },
+      {
+        role: 'owner',
+        email: 'owner@example.com',
+        organization: { name: 'Test Org' },
+        firstName: '',
+        lastName: '',
+      },
+    ] as Individual[],
     updateFrequency: 'daily',
     topics: ['environment'],
+    subtopics: ['subtopic1'],
     onlineResources: [
       {
-        url: { href: 'http://example.com/capabilities' },
-      },
+        type: 'download',
+        url: new URL('http://example.com/data.zip'),
+      } as DatasetDownloadDistribution,
+      {
+        type: 'service',
+        url: new URL('http://example.com/wms'),
+        accessServiceProtocol: 'wms',
+      } as DatasetServiceDistribution,
     ],
     extras: {
       sourcesIdentifiers: '12345',
+      resourceTitleObject: { langfre: 'Titre français', langger: 'Deutscher Titel' },
+      resourceAltTitleObject: [{ langfre: 'Alt titre FR', langger: 'Alt Titel DE' }],
+      resourceAbstractObject: {
+        langfre: 'Résumé français',
+        langger: 'Deutsche Zusammenfassung',
+      },
+      MD_LegalConstraintsOtherConstraintsObject: [{ default: 'CC-BY' }],
+      cl_statusObject: { key: 'completed' },
+      linkProtocol: ['MAP:Preview', 'OGC:WMS'],
+      featureTypes: [
+        {
+          typeName: 'Feature',
+          attributeTable: [{ name: 'ID', type: 'string' }],
+        },
+      ],
+      format: ['ESRI Shapefile (SHP)'],
     },
   }
 
@@ -38,8 +80,10 @@ describe('Metadata Validators', () => {
     keywords: [],
     legalConstraints: [],
     contacts: [],
+    contactsForResource: [],
     updateFrequency: undefined,
     topics: [],
+    subtopics: [],
     onlineResources: [],
     extras: {},
   }
@@ -49,162 +93,151 @@ describe('Metadata Validators', () => {
       const result = getAllKeysValidator()
       expect(result).toEqual([
         'title',
+        'titleMultilingual',
+        'altTitleMultilingual',
         'abstract',
+        'abstractMultilingual',
         'keywords',
         'legalConstraints',
+        'legalConstraintsOtherConstraints',
         'contacts',
+        'contactsPointOfContactEmail',
+        'contactsForResourceWithOwner',
         'updateFrequency',
         'topics',
+        'subtopics',
         'organisation',
         'source',
+        'status',
+        'linkDownload',
+        'linkService',
+        'linkMapPreview',
+        'featureCatalog',
+        'resourceFormat',
       ])
       expect(result.every((key) => typeof key === 'string')).toBe(true)
     })
   })
 
   describe('getQualityValidators', () => {
-    const propsToValidate: ValidatorMapperKeys[] = [
-      'title',
-      'abstract',
-      'keywords',
-      'legalConstraints',
-      'contacts',
-      'updateFrequency',
-      'topics',
-      'organisation',
-      'source',
-    ]
+    describe('for kind "dataset"', () => {
+      const propsToValidate: ValidatorMapperKeys[] = [
+        'titleMultilingual',
+        'altTitleMultilingual',
+        'abstractMultilingual',
+        'keywords',
+        'legalConstraintsOtherConstraints',
+        'contactsPointOfContactEmail',
+        'contactsForResourceWithOwner',
+        'status',
+        'linkDownload',
+        'linkService',
+        'linkMapPreview',
+        'subtopics',
+        'organisation',
+        'featureCatalog',
+        'resourceFormat',
+      ]
 
-    it('should filter and return only validators applicable to record kind "dataset" with correct validation results', () => {
-      const result = getQualityValidators(
-        { ...mockRecord, kind: 'dataset' },
-        propsToValidate
-      )
+      it('should return all applicable validators passing with valid record', () => {
+        const result = getQualityValidators(
+          { ...mockRecord, kind: 'dataset' },
+          propsToValidate
+        )
+        expect(result.length).toBe(15)
+        expect(result.map((v) => v.name)).toEqual(propsToValidate)
+        result.forEach((v) => expect(v.validator()).toBe(true))
+      })
 
-      expect(result.length).toBe(8)
-      expect(result[0].name).toBe('title')
-      expect(result[1].name).toBe('abstract')
-      expect(result[2].name).toBe('keywords')
-      expect(result[3].name).toBe('legalConstraints')
-      expect(result[4].name).toBe('contacts')
-      expect(result[5].name).toBe('updateFrequency')
-      expect(result[6].name).toBe('topics')
-      expect(result[7].name).toBe('organisation')
-      expect(result[0].validator()).toBe(true)
-      expect(result[1].validator()).toBe(true)
-      expect(result[2].validator()).toBe(true)
-      expect(result[3].validator()).toBe(true)
-      expect(result[4].validator()).toBe(true)
-      expect(result[5].validator()).toBe(true)
-      expect(result[6].validator()).toBe(true)
-      expect(result[7].validator()).toBe(true)
-
-      const resultFailedValidation = getQualityValidators(
-        { ...mockRecordInvalid, kind: 'dataset' },
-        propsToValidate
-      )
-
-      expect(resultFailedValidation.length).toBe(8)
-      expect(resultFailedValidation[0].name).toBe('title')
-      expect(resultFailedValidation[1].name).toBe('abstract')
-      expect(resultFailedValidation[2].name).toBe('keywords')
-      expect(resultFailedValidation[3].name).toBe('legalConstraints')
-      expect(resultFailedValidation[4].name).toBe('contacts')
-      expect(resultFailedValidation[5].name).toBe('updateFrequency')
-      expect(resultFailedValidation[6].name).toBe('topics')
-      expect(resultFailedValidation[7].name).toBe('organisation')
-      expect(resultFailedValidation[0].validator()).toBe(false)
-      expect(resultFailedValidation[1].validator()).toBe(false)
-      expect(resultFailedValidation[2].validator()).toBe(false)
-      expect(resultFailedValidation[3].validator()).toBe(false)
-      expect(resultFailedValidation[4].validator()).toBe(false)
-      expect(resultFailedValidation[5].validator()).toBe(false)
-      expect(resultFailedValidation[6].validator()).toBe(false)
-      expect(resultFailedValidation[7].validator()).toBe(false)
+      it('should return all applicable validators failing with invalid record', () => {
+        const result = getQualityValidators(
+          { ...mockRecordInvalid, kind: 'dataset' },
+          propsToValidate
+        )
+        expect(result.length).toBe(15)
+        result.forEach((v) => expect(v.validator()).toBe(false))
+      })
     })
 
-    it('should filter and return only validators applicable to record kind "reuse" with correct validation results', () => {
-      const result = getQualityValidators(
-        { ...mockRecord, kind: 'reuse' },
-        propsToValidate
-      )
+    describe('for kind "reuse"', () => {
+      const propsToValidate: ValidatorMapperKeys[] = [
+        'titleMultilingual',
+        'altTitleMultilingual',
+        'abstractMultilingual',
+        'keywords',
+        'legalConstraintsOtherConstraints',
+        'contactsPointOfContactEmail',
+        'contactsForResourceWithOwner',
+        'status',
+        'linkDownload',
+        'linkService',
+        'linkMapPreview',
+        'subtopics',
+        'organisation',
+        'source',
+      ]
 
-      expect(result.length).toBe(8)
-      expect(result[0].name).toBe('title')
-      expect(result[1].name).toBe('abstract')
-      expect(result[2].name).toBe('keywords')
-      expect(result[3].name).toBe('legalConstraints')
-      expect(result[4].name).toBe('contacts')
-      expect(result[5].name).toBe('topics')
-      expect(result[6].name).toBe('organisation')
-      expect(result[7].name).toBe('source')
-      expect(result[0].validator()).toBe(true)
-      expect(result[1].validator()).toBe(true)
-      expect(result[2].validator()).toBe(true)
-      expect(result[3].validator()).toBe(true)
-      expect(result[4].validator()).toBe(true)
-      expect(result[5].validator()).toBe(true)
-      expect(result[6].validator()).toBe(true)
-      expect(result[7].validator()).toBe(true)
+      it('should return all applicable validators passing with valid record', () => {
+        const result = getQualityValidators(
+          { ...mockRecord, kind: 'reuse' },
+          propsToValidate
+        )
+        expect(result.length).toBe(14)
+        expect(result.map((v) => v.name)).toEqual(propsToValidate)
+        result.forEach((v) => expect(v.validator()).toBe(true))
+      })
 
-      const resultFailedValidation = getQualityValidators(
-        { ...mockRecordInvalid, kind: 'reuse' },
-        propsToValidate
-      )
-
-      expect(resultFailedValidation.length).toBe(8)
-      expect(resultFailedValidation[0].name).toBe('title')
-      expect(resultFailedValidation[1].name).toBe('abstract')
-      expect(resultFailedValidation[2].name).toBe('keywords')
-      expect(resultFailedValidation[3].name).toBe('legalConstraints')
-      expect(resultFailedValidation[4].name).toBe('contacts')
-      expect(resultFailedValidation[5].name).toBe('topics')
-      expect(resultFailedValidation[6].name).toBe('organisation')
-      expect(resultFailedValidation[7].name).toBe('source')
-      expect(resultFailedValidation[0].validator()).toBe(false)
-      expect(resultFailedValidation[1].validator()).toBe(false)
-      expect(resultFailedValidation[2].validator()).toBe(false)
-      expect(resultFailedValidation[3].validator()).toBe(false)
-      expect(resultFailedValidation[4].validator()).toBe(false)
-      expect(resultFailedValidation[5].validator()).toBe(false)
-      expect(resultFailedValidation[6].validator()).toBe(false)
-      expect(resultFailedValidation[7].validator()).toBe(false)
+      it('should return all applicable validators failing with invalid record', () => {
+        const result = getQualityValidators(
+          { ...mockRecordInvalid, kind: 'reuse' },
+          propsToValidate
+        )
+        expect(result.length).toBe(14)
+        result.forEach((v) => expect(v.validator()).toBe(false))
+      })
     })
 
-    it('should filter and return only validators applicable to record kind "service" with correct validation results', () => {
+    describe('for kind "service"', () => {
+      const propsToValidate: ValidatorMapperKeys[] = [
+        'titleMultilingual',
+        'altTitleMultilingual',
+        'abstractMultilingual',
+        'keywords',
+        'legalConstraintsOtherConstraints',
+        'contactsPointOfContactEmail',
+        'contactsForResourceWithOwner',
+        'status',
+        'linkDownload',
+        'linkService',
+        'linkMapPreview',
+      ]
+
+      it('should return all applicable validators passing with valid record', () => {
+        const result = getQualityValidators(
+          { ...mockRecord, kind: 'service' } as Partial<CatalogRecord>,
+          propsToValidate
+        )
+        expect(result.length).toBe(11)
+        expect(result.map((v) => v.name)).toEqual(propsToValidate)
+        result.forEach((v) => expect(v.validator()).toBe(true))
+      })
+
+      it('should return all applicable validators failing with invalid record', () => {
+        const result = getQualityValidators(
+          { ...mockRecordInvalid, kind: 'service' } as Partial<CatalogRecord>,
+          propsToValidate
+        )
+        expect(result.length).toBe(11)
+        result.forEach((v) => expect(v.validator()).toBe(false))
+      })
+    })
+
+    it('should exclude validators not applicable to the record kind', () => {
       const result = getQualityValidators(
-        { ...mockRecord, kind: 'service' },
-        propsToValidate
+        { ...mockRecord, kind: 'service' } as Partial<CatalogRecord>,
+        ['featureCatalog', 'resourceFormat', 'subtopics', 'source']
       )
-
-      expect(result.length).toBe(5)
-      expect(result[0].name).toBe('title')
-      expect(result[1].name).toBe('abstract')
-      expect(result[2].name).toBe('keywords')
-      expect(result[3].name).toBe('legalConstraints')
-      expect(result[4].name).toBe('contacts')
-      expect(result[0].validator()).toBe(true)
-      expect(result[1].validator()).toBe(true)
-      expect(result[2].validator()).toBe(true)
-      expect(result[3].validator()).toBe(true)
-      expect(result[4].validator()).toBe(true)
-
-      const resultFailedValidation = getQualityValidators(
-        { ...mockRecordInvalid, kind: 'service' },
-        propsToValidate
-      )
-
-      expect(resultFailedValidation.length).toBe(5)
-      expect(resultFailedValidation[0].name).toBe('title')
-      expect(resultFailedValidation[1].name).toBe('abstract')
-      expect(resultFailedValidation[2].name).toBe('keywords')
-      expect(resultFailedValidation[3].name).toBe('legalConstraints')
-      expect(resultFailedValidation[4].name).toBe('contacts')
-      expect(resultFailedValidation[0].validator()).toBe(false)
-      expect(resultFailedValidation[1].validator()).toBe(false)
-      expect(resultFailedValidation[2].validator()).toBe(false)
-      expect(resultFailedValidation[3].validator()).toBe(false)
-      expect(resultFailedValidation[4].validator()).toBe(false)
+      expect(result.length).toBe(0)
     })
   })
 })

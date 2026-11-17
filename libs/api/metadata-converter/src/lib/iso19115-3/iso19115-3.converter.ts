@@ -1,22 +1,15 @@
-import { CatalogRecord, DatasetRecord } from '@geonetwork-ui/common/domain/model/record'
+import { CatalogRecord } from '@geonetwork-ui/common/domain/model/record'
 import { XmlElement } from '@rgrove/parse-xml'
 import { Iso19139Converter } from '../iso19139'
 import {
-  parseXmlString,
-  getRootElement,
-  xmlToString,
-} from '../xml-utils'
-import {
   writeGraphicOverviews,
-  writeTemporalExtents,
-} from '../iso19139/write-parts'
-import {
   writeLegalConstraints,
   writeLicenses,
   writeOtherConstraints,
   writeSecurityConstraints,
   writeSpatialExtents,
-} from './write-parts'
+  writeTemporalExtents,
+} from '../iso19139/write-parts'
 import { renameElements } from '../xml-utils'
 import {
   readContacts,
@@ -35,14 +28,12 @@ import {
   readResourcePublished,
   readResourceUpdated,
   readReuseType,
-  readSpatialExtents,
   readSubTopics,
   readTopics,
   readUniqueIdentifier,
 } from './read-parts'
 import {
   writeAbstract,
-  writeCitationDates,
   writeContacts,
   writeContactsForResource,
   writeDefaultLanguage,
@@ -50,7 +41,6 @@ import {
   writeKind,
   writeLandingPage,
   writeLineage,
-  writeMetadataMaintenance,
   writeOnlineResources,
   writeOtherLanguages,
   writeRecordCreated,
@@ -93,7 +83,6 @@ export class Iso191153Converter extends Iso19139Converter {
     this.readers['reuseType'] = readReuseType
     this.readers['topics'] = readTopics
     this.readers['subTopics'] = readSubTopics
-    this.readers['spatialExtents'] = readSpatialExtents
 
     this.writers['uniqueIdentifier'] = writeUniqueIdentifier
     this.writers['kind'] = writeKind
@@ -105,7 +94,6 @@ export class Iso191153Converter extends Iso19139Converter {
     this.writers['resourceUpdated'] = writeResourceUpdated
     this.writers['resourceCreated'] = writeResourceCreated
     this.writers['resourcePublished'] = writeResourcePublished
-    this.writers['citationDates'] = writeCitationDates
     this.writers['resourceIdentifiers'] = writeResourceIdentifier
     this.writers['reuseType'] = writeReuseType
     this.writers['contacts'] = writeContacts
@@ -238,25 +226,6 @@ export class Iso191153Converter extends Iso19139Converter {
   ): Promise<string> {
     let result = await super.writeRecord(record, reference)
 
-    // Parse the result to add ISO19115-3 specific elements
-    const doc = parseXmlString(result)
-    const rootEl = getRootElement(doc)
-
-    if (rootEl && record.kind === 'dataset') {
-      // Add citation date for Schematron CHE requirement
-      // Uses recordCreated (metadata creation date) to satisfy "date de citation" requirement
-      writeCitationDates(record, rootEl)
-
-      // Add metadata maintenance information in mdb:metadataMaintenance
-      // This is required by ISO19115-3.2018.che for proper schema validation
-      if (record.updateFrequency) {
-        writeMetadataMaintenance(record as DatasetRecord, rootEl)
-      }
-    }
-
-    // Convert back to string after adding new elements
-    result = xmlToString(doc)
-
     // Fix gco namespace definition (changes between iso19139 and iso19115-3)
     result = result.replace(
       '"http://www.isotc211.org/2005/gco"',
@@ -298,6 +267,7 @@ export class Iso191153Converter extends Iso19139Converter {
       (match, attrs) => {
         // Extract existing namespace declarations and other attributes
         const nsRegex = /xmlns:[a-zA-Z0-9]+="[^"]*"/g
+        const existingNs = (attrs.match(nsRegex) || [])
         const otherAttrs = attrs.replace(nsRegex, '').replace(/\s*gco:isoType="[^"]*"/g, '').trim()
 
         // CHE19115-3.2018 requires these namespaces in specific order

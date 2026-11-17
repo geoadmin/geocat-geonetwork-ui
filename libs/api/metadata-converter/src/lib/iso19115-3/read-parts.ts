@@ -31,10 +31,8 @@ import {
   findIdentification,
 } from '../iso19139/read-parts'
 import {
-  DatasetSpatialExtent,
   Individual,
   LanguageCode,
-  ModelTranslations,
   OnlineResource,
   Organization,
   OrganizationTranslations,
@@ -47,9 +45,6 @@ import { matchMimeType } from '../common/distribution.mapper'
 import { fullNameToParts } from '../iso19139/utils/individual-name'
 import { toLang2 } from '@geonetwork-ui/util/i18n/language-codes'
 import { getResourceType, getReuseType } from '../common/resource-types'
-import { Geometry } from 'geojson'
-import { readGeometry } from '../iso19139/utils/geometry'
-import { extractDecimal } from '../iso19139/read-parts'
 
 export function readKind(rootEl: XmlElement): RecordKind {
   return pipe(
@@ -359,9 +354,14 @@ function extractResourceDateInfo(
     const identification = findIdentification19115()(rootEl)
     if (!identification) return null
 
-    // ISO19115-3: cit:date is directly under identification, NOT under citation!
-    // Find all cit:date elements at identification level
-    const dateLists = allChildrenElement(identification).filter(
+    const citation = findChildElement('mri:citation')(identification)
+    if (!citation) return null
+
+    const ciCitation = findChildElement('cit:CI_Citation')(citation)
+    if (!ciCitation) return null
+
+    // Find all cit:date elements in the citation
+    const dateLists = allChildrenElement(ciCitation).filter(
       (child) => child.name === 'cit:date'
     )
 
@@ -450,8 +450,8 @@ export function readSubTopics(rootEl: XmlElement): string[] {
   return subTopicEls
     .map((el) => {
       const codeEl = findChildElement('che:CHE_MD_SubTopicCategoryCode')(el)
-      // Read the codeListValue attribute (CHE_MD_SubTopicCategoryCode is self-closing)
-      return codeEl ? readAttribute('codeListValue')(codeEl) : null
+      // The text content is directly in the che:CHE_MD_SubTopicCategoryCode element
+      return codeEl ? readText()(codeEl) : null
     })
     .filter((v) => v) as string[]
 }
@@ -528,106 +528,4 @@ export function findIdentification19115() {
     filterArray((el) => el !== null),
     getAtIndex(0)
   )
-}
-
-/**
- * Read spatial extents from ISO19115-3 format (gex namespace)
- * Handles both direct geometry/bbox and subtemplate references via xlink:href
- */
-export function readSpatialExtents(rootEl: XmlElement): DatasetSpatialExtent[] {
-  const extractGeometry = (rootEl: XmlElement): Geometry => {
-    if (!rootEl) return null
-    return pipe(
-      findChildElement('gex:polygon', false),
-      map((el) => (el ? readGeometry(el) : null))
-    )(rootEl)
-  }
-
-  const extractBBox = (
-    rootEl: XmlElement
-  ): [number, number, number, number] => {
-    if (!rootEl) return null
-    return pipe(
-      combine(
-        pipe(findChildElement('gex:westBoundLongitude'), extractDecimal()),
-        pipe(findChildElement('gex:southBoundLatitude'), extractDecimal()),
-        pipe(findChildElement('gex:eastBoundLongitude'), extractDecimal()),
-        pipe(findChildElement('gex:northBoundLatitude'), extractDecimal())
-      )
-    )(rootEl)
-  }
-
-  const extractDescription = (
-    rootEl: XmlElement
-  ): [string, ModelTranslations] => {
-    if (!rootEl) return [null, {}]
-    return pipe(
-      findChildElement('gex:description', false),
-      extractLocalizedCharacterString('description')
-    )(rootEl)
-  }
-
-  const extractSubtemplateHref = (rootEl: XmlElement): string => {
-    if (!rootEl) return null
-    return readAttribute('xlink:href')(rootEl)
-  }
-
-  // Find all mri:extent elements
-  return pipe(
-    findIdentification19115(),
-    findChildrenElement('mri:extent', false),
-    mapArray((extentEl) => {
-      // Get the gex:EX_Extent child
-      const exExtentEl = findChildElement('gex:EX_Extent', false)(extentEl)
-
-      if (!exExtentEl) return null
-
-      // Extract all components
-      const subtemplateHref = extractSubtemplateHref(extentEl)
-      const [description, translations] = extractDescription(exExtentEl)
-
-      const boundingBoxEl = findChildElement(
-        'gex:EX_BoundingBox',
-        false
-      )(exExtentEl)
-      const boundingPolygonEl = findChildElement(
-        'gex:EX_BoundingPolygon',
-        false
-      )(exExtentEl)
-
-      const geometry = extractGeometry(boundingPolygonEl)
-      const bbox = extractBBox(boundingBoxEl)
-
-      // Skip if no content
-      if (!geometry && !bbox && !description && !subtemplateHref) {
-        return null
-      }
-
-      const extent: DatasetSpatialExtent = {}
-
-      if (description) {
-        extent.description = description
-        if (Object.keys(translations).length > 0) {
-          extent.translations = {
-            description: translations as Record<string, string>
-          }
-        }
-      }
-
-      if (geometry) {
-        extent.geometry = geometry
-      }
-
-      if (bbox) {
-        extent.bbox = bbox
-      }
-
-      // If this is a subtemplate reference, store the href
-      if (subtemplateHref) {
-        extent.subtemplateUuid = subtemplateHref
-      }
-      return extent
-    }),
-    filterArray((el) => el !== null)
-  )(rootEl)
 }
