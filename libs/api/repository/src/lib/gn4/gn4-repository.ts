@@ -130,6 +130,10 @@ export class Gn4Repository implements RecordsRepositoryInterface {
   }
 
   getRecord(uniqueIdentifier: string): Observable<CatalogRecord | null> {
+    // Don't search for null/empty identifiers
+    if (!uniqueIdentifier) {
+      return of(null)
+    }
     return this.gn4SearchApi
       .search(
         'bucket',
@@ -351,6 +355,26 @@ export class Gn4Repository implements RecordsRepositoryInterface {
   openRecordForEdition(
     uniqueIdentifier: string
   ): Observable<[CatalogRecord, string, boolean] | null> {
+    // For newly created records (null UUID), only check local storage
+    if (!uniqueIdentifier) {
+      const draft$ = of(this.getRecordFromLocalStorage(uniqueIdentifier))
+      return draft$.pipe(
+        switchMap((draft) => {
+          if (!draft) {
+            return of(null)
+          }
+          return from(
+            findConverterForDocument(draft)
+              .readRecord(draft)
+              .then(
+                (record) =>
+                  [record, draft, false] as [CatalogRecord, string, boolean]
+              )
+          )
+        })
+      )
+    }
+
     const draft$ = of(this.getRecordFromLocalStorage(uniqueIdentifier))
     const recordAsXml$ = this.getRecordAsXml(uniqueIdentifier)
 
@@ -438,6 +462,8 @@ export class Gn4Repository implements RecordsRepositoryInterface {
       switchMap((recordXml) => {
         // Extract groupOwner from extras (for duplication/creation to work properly)
         const groupOwner = record.extras?.['groupOwner'] as string | undefined
+        // For new records (no UUID), use GENERATEUUID; for existing records, use OVERWRITE
+        const uuidProcessing = record.uniqueIdentifier ? 'OVERWRITE' : 'GENERATEUUID'
         return this.gn4RecordsApi.insert(
           'METADATA',
           undefined,
@@ -445,7 +471,7 @@ export class Gn4Repository implements RecordsRepositoryInterface {
           undefined,
           publishToAll,
           undefined,
-          'OVERWRITE',
+          uuidProcessing,
           groupOwner,
           undefined,
           undefined,
