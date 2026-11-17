@@ -56,7 +56,7 @@ export class DcatApConverter extends BaseConverter<string> {
     spatialExtents: readSpatialExtents,
     keywords: readKeywords,
     topics: readTopics,
-    subtopics: () => undefined, // specific to eCH-0271, not supported in DCAT-AP
+    subTopics: () => undefined, // specific to eCH-0271, not supported in DCAT-AP
     resourceIdentifiers: () => undefined,
     recordUpdated: readRecordUpdated,
     recordCreated: readRecordCreated,

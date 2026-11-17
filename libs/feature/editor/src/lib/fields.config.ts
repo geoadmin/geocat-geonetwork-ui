@@ -73,7 +73,7 @@ export const RECORD_TOPICS_FIELD: EditorField = {
 }
 
 export const RECORD_SUB_TOPICS_FIELD: EditorField = {
-  model: 'subTopics',
+  model: 'subtopics',
   formFieldConfig: {},
 }
 

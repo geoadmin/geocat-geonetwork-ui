@@ -58,7 +58,7 @@ export class NewRecordResolver {
             abstract: {},
           },
           topics: [],
-          subTopics: [],
+          subtopics: [],
           keywords: [],
           licenses: [],
           legalConstraints: [NOT_KNOWN_CONSTRAINT],
