@@ -40,7 +40,7 @@ describe('Metadata Validators', () => {
     ] as Individual[],
     updateFrequency: 'daily',
     topics: ['environment'],
-    subtopics: ['subtopic1'],
+    subTopics: ['subtopic1'],
     onlineResources: [
       {
         type: 'download',
@@ -83,7 +83,7 @@ describe('Metadata Validators', () => {
     contactsForResource: [],
     updateFrequency: undefined,
     topics: [],
-    subtopics: [],
+    subTopics: [],
     onlineResources: [],
     extras: {},
   }
@@ -105,7 +105,7 @@ describe('Metadata Validators', () => {
         'contactsForResourceWithOwner',
         'updateFrequency',
         'topics',
-        'subtopics',
+        'subTopics',
         'organisation',
         'source',
         'status',
@@ -133,7 +133,7 @@ describe('Metadata Validators', () => {
         'linkDownload',
         'linkService',
         'linkMapPreview',
-        'subtopics',
+        'subTopics',
         'organisation',
         'featureCatalog',
         'resourceFormat',
@@ -172,7 +172,7 @@ describe('Metadata Validators', () => {
         'linkDownload',
         'linkService',
         'linkMapPreview',
-        'subtopics',
+        'subTopics',
         'organisation',
         'source',
       ]
@@ -235,7 +235,7 @@ describe('Metadata Validators', () => {
     it('should exclude validators not applicable to the record kind', () => {
       const result = getQualityValidators(
         { ...mockRecord, kind: 'service' } as Partial<CatalogRecord>,
-        ['featureCatalog', 'resourceFormat', 'subtopics', 'source']
+        ['featureCatalog', 'resourceFormat', 'subTopics', 'source']
       )
       expect(result.length).toBe(0)
     })

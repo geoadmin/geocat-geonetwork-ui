@@ -106,7 +106,7 @@ export class DcatApConverter extends BaseConverter<string> {
     contactsForResource: () => undefined,
     keywords: () => undefined,
     topics: () => undefined,
-    subtopics: () => undefined,
+    subTopics: () => undefined,
     licenses: () => undefined,
     legalConstraints: () => undefined,
     securityConstraints: () => undefined,

@@ -109,7 +109,7 @@ const ValidatorMapper: TValidatorMapper = {
   updateFrequency: (record) =>
     !!record?.updateFrequency && record.updateFrequency !== 'unknown',
   topics: (record) => (record?.topics?.length ?? 0) > 0,
-  subtopics: (record) => (record?.subtopics?.length ?? 0) > 0,
+  subTopics: (record) => (record?.subTopics?.length ?? 0) > 0,
   organisation: (record) => !!record?.contacts?.[0]?.organization?.name,
   source: (record) => !!record?.extras?.sourcesIdentifiers,
   status: (record) => {
@@ -163,7 +163,7 @@ function getMappersFromKind(kind: RecordKind) {
     'altTitleMultilingual',
     'abstractMultilingual',
     'keywords',
-    'subtopics',
+    'subTopics',
     'organisation',
     'linkDownload',
     'linkService',
