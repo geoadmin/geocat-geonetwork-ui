@@ -1,7 +1,10 @@
 import { Gn4Repository } from './gn4-repository'
 import {
+  GroupsApiService,
+  MeApiService,
   RecordsApiService,
   SearchApiService,
+  UsersApiService,
 } from '@geonetwork-ui/data-access/gn4'
 import { firstValueFrom, lastValueFrom, of, throwError } from 'rxjs'
 import { ElasticsearchService } from './elasticsearch'
@@ -99,6 +102,34 @@ class RecordsApiServiceMock {
   deleteRecord = jest.fn(() => of({}))
   create = jest.fn(() => of('1234-5678'))
 }
+class MeApiServiceMock {
+  getMe = jest.fn(() =>
+    of({
+      groupsWithEditor: [2],
+      groupsWithRegisteredUser: [],
+    })
+  )
+}
+class UsersApiServiceMock {
+  retrieveAllUserGroups = jest.fn(() =>
+    of([
+      {
+        groupId: 2,
+        userProfile: 'Editor',
+      },
+    ])
+  )
+}
+class GroupsApiServiceMock {
+  getGroups = jest.fn(() =>
+    of([
+      {
+        id: 1,
+        name: 'all',
+      },
+    ])
+  )
+}
 
 let _supportsAuthentication = true
 class PlatformServiceInterfaceMock {
@@ -129,6 +160,7 @@ describe('Gn4Repository', () => {
   let gn4Helper: ElasticsearchService
   let gn4SearchApi: SearchApiService
   let gn4RecordsApi: RecordsApiService
+  let meApiService: MeApiService
   let platformService: PlatformServiceInterface
   let settingsService: Gn4SettingsService
   let httpTestingController: HttpTestingController
@@ -149,6 +181,18 @@ describe('Gn4Repository', () => {
         {
           provide: RecordsApiService,
           useClass: RecordsApiServiceMock,
+        },
+        {
+          provide: MeApiService,
+          useClass: MeApiServiceMock,
+        },
+        {
+          provide: UsersApiService,
+          useClass: UsersApiServiceMock,
+        },
+        {
+          provide: GroupsApiService,
+          useClass: GroupsApiServiceMock,
         },
         {
           provide: Gn4Converter,
@@ -172,6 +216,7 @@ describe('Gn4Repository', () => {
     gn4Helper = TestBed.inject(ElasticsearchService)
     gn4SearchApi = TestBed.inject(SearchApiService)
     gn4RecordsApi = TestBed.inject(RecordsApiService)
+    meApiService = TestBed.inject(MeApiService)
     platformService = TestBed.inject(PlatformServiceInterface)
     settingsService = TestBed.inject(Gn4SettingsService)
     httpTestingController = TestBed.inject(HttpTestingController)
@@ -250,6 +295,7 @@ describe('Gn4Repository', () => {
   })
   describe('getRecord', () => {
     let record: CatalogRecord
+    const spySearch = jest.spyOn(SearchApiServiceMock.prototype, 'search')
     beforeEach(async () => {
       record = await lastValueFrom(repository.getRecord('1234-5678'))
     })
@@ -275,10 +321,23 @@ describe('Gn4Repository', () => {
         expect(record).toBe(null)
       })
     })
+    describe('if identifier is empty', () => {
+      beforeEach(async () => {
+        jest.clearAllMocks()
+        record = await lastValueFrom(
+          repository.getRecord(null as unknown as string)
+        )
+      })
+      it('returns null without calling the API', () => {
+        expect(record).toBe(null)
+        expect(spySearch).not.toHaveBeenCalled()
+      })
+    })
   })
 
   describe('getMultipleRecords', () => {
     let records: CatalogRecord[]
+    const spySearch = jest.spyOn(SearchApiServiceMock.prototype, 'search')
     beforeEach(async () => {
       records = await lastValueFrom(
         repository.getMultipleRecords(['1234-5678', '1234-5679'])
@@ -307,6 +366,18 @@ describe('Gn4Repository', () => {
       })
       it('returns null', () => {
         expect(records).toBe(null)
+      })
+    })
+    describe('if identifiers are empty', () => {
+      beforeEach(async () => {
+        jest.clearAllMocks()
+        records = await lastValueFrom(
+          repository.getMultipleRecords([null as unknown as string])
+        )
+      })
+      it('returns null without calling the API', () => {
+        expect(records).toBe(null)
+        expect(spySearch).not.toHaveBeenCalled()
       })
     })
   })
@@ -816,6 +887,58 @@ describe('Gn4Repository', () => {
           simpleDatasetRecordFixture().uniqueIdentifier
         }</gco:CharacterString>
     </gmd:fileIdentifier>`)
+      })
+    })
+    describe('New record', () => {
+      beforeEach(async () => {
+        ;(gn4RecordsApi.insert as jest.Mock).mockReturnValueOnce(
+          of({
+            metadataInfos: {
+              1234: [{ uuid: '1234-5678-9012' }],
+            },
+          })
+        )
+        await lastValueFrom(
+          repository.saveRecord({
+            ...simpleDatasetRecordFixture(),
+            uniqueIdentifier: null,
+          })
+        )
+      })
+      it('requests UUID generation for new records', () => {
+        expect((gn4RecordsApi.insert as jest.Mock).mock.calls[0][6]).toBe(
+          'GENERATEUUID'
+        )
+      })
+      it('uses default group for new records', () => {
+        expect((gn4RecordsApi.insert as jest.Mock).mock.calls[0][7]).toBe('2')
+      })
+
+      it('uses group 55 for admins without explicit groups', async () => {
+        ;(meApiService.getMe as jest.Mock).mockReturnValueOnce(
+          of({
+            admin: true,
+            profile: 'Administrator',
+            groupsWithEditor: [],
+            groupsWithRegisteredUser: [],
+          })
+        )
+        ;(gn4RecordsApi.insert as jest.Mock).mockReturnValueOnce(
+          of({
+            metadataInfos: {
+              1234: [{ uuid: '1234-5678-9012' }],
+            },
+          })
+        )
+
+        await lastValueFrom(
+          repository.saveRecord({
+            ...simpleDatasetRecordFixture(),
+            uniqueIdentifier: null,
+          })
+        )
+
+        expect((gn4RecordsApi.insert as jest.Mock).mock.calls[1][7]).toBe('55')
       })
     })
   })
