@@ -31,6 +31,11 @@ else
     echo "[INFO] Replacing proxy path in conf with: ${PROXY_PATH}..."
     sed -i "s%proxy_path = \".*\"%proxy_path = \"${PROXY_PATH}\"%" ${APP_FILES_PATH}${CONFIG_FILE_PATH}${CONFIG_FILE_NAME}
   fi
+  if [ ! -z "${DEEPL_API_KEY}" ]
+  then
+    echo "[INFO] Injecting DeepL API key into conf..."
+    sed -i "s%deepl_api_key = \"\"%deepl_api_key = \"${DEEPL_API_KEY}\"%"  ${APP_FILES_PATH}${CONFIG_FILE_PATH}${CONFIG_FILE_NAME}
+  fi
 fi
 
 ## 2. COPY ASSETS

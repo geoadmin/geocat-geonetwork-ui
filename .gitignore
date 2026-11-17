@@ -48,6 +48,11 @@ Thumbs.db
 docs/.vitepress/dist
 docs/.vitepress/cache
 
+# Environment and configuration files with secrets
+# NEVER commit files containing API keys, passwords, or tokens
+apps/metadata-editor/src/environments/environment.ts
+conf/default.toml
+
 apps/*-e2e/cypress/**
 apps/webcomponents/cypress/screenshots/**
 
@@ -56,4 +61,3 @@ apps/webcomponents/cypress/screenshots/**
 
 # Environment and API keys
 .env.local
-apps/metadata-editor/src/environments/environment.ts

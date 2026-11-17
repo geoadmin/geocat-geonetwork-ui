@@ -32,7 +32,6 @@ import {
 } from '@geonetwork-ui/util/shared'
 import { EffectsModule } from '@ngrx/effects'
 import { StoreModule } from '@ngrx/store'
-import { environment } from '../environments/environment'
 import { AppComponent } from './app.component'
 import { appRoutes } from './app.routes'
 import { extModules } from './build-specifics'
@@ -92,7 +91,7 @@ import { EditorRouterService } from './router.service'
     },
     {
       provide: DEEPL_API_KEY,
-      useFactory: () => environment.deepl?.apiKey || '',
+      useFactory: () => getGlobalConfig().DEEPL_API_KEY || '',
     },
   ],
   bootstrap: [AppComponent],

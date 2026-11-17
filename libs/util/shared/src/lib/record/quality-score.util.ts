@@ -163,7 +163,7 @@ function getMappersFromKind(kind: RecordKind) {
     'altTitleMultilingual',
     'abstractMultilingual',
     'keywords',
-    'subTopics',
+    'subtopics',
     'organisation',
     'linkDownload',
     'linkService',

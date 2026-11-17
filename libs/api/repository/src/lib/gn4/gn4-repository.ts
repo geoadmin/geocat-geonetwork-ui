@@ -31,9 +31,12 @@ import {
 import { PlatformServiceInterface } from '@geonetwork-ui/common/domain/platform.service.interface'
 import { RecordsRepositoryInterface } from '@geonetwork-ui/common/domain/repository/records-repository.interface'
 import {
+  GroupsApiService,
+  MeApiService,
   LanguagesApiService,
   RecordsApiService,
   SearchApiService,
+  UsersApiService,
 } from '@geonetwork-ui/data-access/gn4'
 import {
   combineLatest,
@@ -65,6 +68,9 @@ export class Gn4Repository implements RecordsRepositoryInterface {
   private gn4SearchHelper = inject(ElasticsearchService)
   private gn4Mapper = inject(Gn4Converter)
   private gn4RecordsApi = inject(RecordsApiService)
+  private meApi = inject(MeApiService)
+  private usersApi = inject(UsersApiService)
+  private groupsApi = inject(GroupsApiService)
   private platformService = inject(PlatformServiceInterface)
   private gn4LanguagesApi = inject(LanguagesApiService)
   private settingsService = inject(Gn4SettingsService)
@@ -130,10 +136,8 @@ export class Gn4Repository implements RecordsRepositoryInterface {
   }
 
   getRecord(uniqueIdentifier: string): Observable<CatalogRecord | null> {
-    // Don't search for null/empty identifiers
-    if (!uniqueIdentifier) {
-      return of(null)
-    }
+    if (!uniqueIdentifier) return of(null)
+
     return this.gn4SearchApi
       .search(
         'bucket',
@@ -153,12 +157,17 @@ export class Gn4Repository implements RecordsRepositoryInterface {
   getMultipleRecords(
     uniqueIdentifiers: string[]
   ): Observable<CatalogRecord[] | null> {
+    const filteredIdentifiers = (uniqueIdentifiers ?? []).filter(
+      (id): id is string => !!id
+    )
+    if (filteredIdentifiers.length === 0) return of(null)
+
     return this.gn4SearchApi
       .search(
         'bucket',
         undefined,
         JSON.stringify(
-          this.gn4SearchHelper.getMetadataByIdsPayload(uniqueIdentifiers)
+          this.gn4SearchHelper.getMetadataByIdsPayload(filteredIdentifiers)
         )
       )
       .pipe(
@@ -355,26 +364,6 @@ export class Gn4Repository implements RecordsRepositoryInterface {
   openRecordForEdition(
     uniqueIdentifier: string
   ): Observable<[CatalogRecord, string, boolean] | null> {
-    // For newly created records (null UUID), only check local storage
-    if (!uniqueIdentifier) {
-      const draft$ = of(this.getRecordFromLocalStorage(uniqueIdentifier))
-      return draft$.pipe(
-        switchMap((draft) => {
-          if (!draft) {
-            return of(null)
-          }
-          return from(
-            findConverterForDocument(draft)
-              .readRecord(draft)
-              .then(
-                (record) =>
-                  [record, draft, false] as [CatalogRecord, string, boolean]
-              )
-          )
-        })
-      )
-    }
-
     const draft$ = of(this.getRecordFromLocalStorage(uniqueIdentifier))
     const recordAsXml$ = this.getRecordAsXml(uniqueIdentifier)
 
@@ -460,34 +449,102 @@ export class Gn4Repository implements RecordsRepositoryInterface {
       }),
       switchMap(() => this.serializeRecordToXml(record, referenceRecordSource)),
       switchMap((recordXml) => {
+        const uuidProcessing = record.uniqueIdentifier
+          ? 'OVERWRITE'
+          : 'GENERATEUUID'
         // Extract groupOwner from extras (for duplication/creation to work properly)
-        // For new records, use a default group if not specified
-        const groupOwner = (record.extras?.['groupOwner'] as string | undefined) || '2'
-        // For new records (no UUID), use GENERATEUUID; for existing records, use OVERWRITE
-        const uuidProcessing = record.uniqueIdentifier ? 'OVERWRITE' : 'GENERATEUUID'
-        // Determine schema: use reference schema if available, otherwise default to iso19115-3-che
-        const schema = referenceRecordSource ? undefined : 'iso19115-3-che'
-        return this.gn4RecordsApi.insert(
-          'METADATA',
-          undefined,
-          undefined,
-          undefined,
-          publishToAll,
-          undefined,
-          uuidProcessing,
-          groupOwner,
-          undefined,
-          undefined,
-          undefined,
-          schema,
-          undefined,
-          undefined,
-          recordXml
+        const groupOwner = record.extras?.['groupOwner'] as string | undefined
+        const targetGroup$ = this.resolveTargetGroupForInsert(
+          record.uniqueIdentifier,
+          groupOwner
+        )
+
+        return targetGroup$.pipe(
+          switchMap((targetGroup) =>
+            this.gn4RecordsApi.insert(
+              'METADATA',
+              undefined,
+              undefined,
+              undefined,
+              publishToAll,
+              undefined,
+              uuidProcessing,
+              targetGroup,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              recordXml
+            )
+          )
         )
       }),
       map((response) => {
         const metadataId = Object.keys(response.metadataInfos)[0]
         return response.metadataInfos[metadataId][0].uuid
+      })
+    )
+  }
+
+  private resolveTargetGroupForInsert(
+    uniqueIdentifier: string | null | undefined,
+    groupOwner?: string
+  ): Observable<string | undefined> {
+    if (groupOwner || uniqueIdentifier) return of(groupOwner)
+
+    return this.meApi.getMe().pipe(
+      switchMap((me) => {
+        const editableGroupId = me?.groupsWithEditor?.[0]
+        const registeredGroupId = me?.groupsWithRegisteredUser?.[0]
+        const groupId = editableGroupId ?? registeredGroupId
+        if (groupId !== undefined && groupId !== null) {
+          return of(groupId.toString())
+        }
+        if (me?.admin || me?.profile?.toLowerCase() === 'administrator') {
+          return of('55')
+        }
+
+        return this.usersApi.retrieveAllUserGroups().pipe(
+          switchMap((groups) => {
+            const preferredGroup = groups.find((group) =>
+              ['editor', 'reviewer', 'useradmin', 'administrator'].includes(
+                group.userProfile?.toLowerCase() || ''
+              )
+            )
+            if (preferredGroup?.groupId !== undefined) {
+              return of(preferredGroup.groupId.toString())
+            }
+
+            const firstGroupWithId = groups.find(
+              (group) => group.groupId !== undefined
+            )
+            if (firstGroupWithId?.groupId !== undefined) {
+              return of(firstGroupWithId.groupId.toString())
+            }
+
+            return this.groupsApi.getGroups().pipe(
+              map((catalogGroups) => {
+                const allGroup = catalogGroups.find(
+                  (group) => group.name?.toLowerCase() === 'all'
+                )
+                if (allGroup?.id !== undefined) return allGroup.id.toString()
+
+                const firstCatalogGroup = catalogGroups.find(
+                  (group) => group.id !== undefined
+                )
+                if (firstCatalogGroup?.id !== undefined) {
+                  return firstCatalogGroup.id.toString()
+                }
+
+                throw new Error(
+                  'No group found for current user. Cannot create a new metadata record.'
+                )
+              })
+            )
+          })
+        )
       })
     )
   }

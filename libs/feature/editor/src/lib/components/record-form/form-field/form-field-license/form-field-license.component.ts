@@ -14,10 +14,12 @@ import {
   LICENSE_CODE_TO_I18N_KEY,
   LICENSE_CODE_TO_TEXT_EN,
 } from '../../../../fields.config'
+import { getOpenDataLicense } from '@geonetwork-ui/api/metadata-converter'
 
 type Licence = {
   label: string
   value: string
+  icon?: string
 }
 
 @Component({
@@ -34,10 +36,14 @@ export class FormFieldLicenseComponent implements OnInit {
   @Output() recordLicencesChange: EventEmitter<Constraint[]> =
     new EventEmitter()
 
-  choices: Licence[] = AVAILABLE_LICENSES.map((license) => ({
-    label: marker(`editor.record.form.license.${license}`),
-    value: license,
-  }))
+  choices: Licence[] = AVAILABLE_LICENSES.map((license) => {
+    const openDataLicense = getOpenDataLicense(license)
+    return {
+      label: marker(`editor.record.form.license.${license}`),
+      value: license,
+      icon: openDataLicense?.iconUrl,
+    }
+  })
 
   selectedLicence: string
 
@@ -93,5 +99,13 @@ export class FormFieldLicenseComponent implements OnInit {
         LICENSE_CODE_TO_TEXT_EN[licenceValue] || licenceValue
       this.recordLicencesChange.emit([{ text: licenseText }])
     }
+  }
+
+  getSelectedLicenseIcon(): string | undefined {
+    if (!this.selectedLicence) return undefined
+    const selectedChoice = this.choices.find(
+      (c) => c.value === this.selectedLicence
+    )
+    return selectedChoice?.icon
   }
 }
