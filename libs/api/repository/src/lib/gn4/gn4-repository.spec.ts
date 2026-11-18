@@ -15,6 +15,7 @@ import {
 } from '@geonetwork-ui/api/metadata-converter'
 import {
   Aggregations,
+  AggregationsParams,
   SearchResults,
 } from '@geonetwork-ui/common/domain/model/search'
 import {
@@ -158,11 +159,9 @@ const translateServiceMock = {
 describe('Gn4Repository', () => {
   let repository: Gn4Repository
   let gn4Helper: ElasticsearchService
-  let gn4SearchApi: SearchApiService
   let gn4RecordsApi: RecordsApiService
   let meApiService: MeApiService
   let platformService: PlatformServiceInterface
-  let settingsService: Gn4SettingsService
   let httpTestingController: HttpTestingController
 
   beforeEach(() => {
@@ -214,11 +213,9 @@ describe('Gn4Repository', () => {
     })
     repository = TestBed.inject(Gn4Repository)
     gn4Helper = TestBed.inject(ElasticsearchService)
-    gn4SearchApi = TestBed.inject(SearchApiService)
     gn4RecordsApi = TestBed.inject(RecordsApiService)
     meApiService = TestBed.inject(MeApiService)
     platformService = TestBed.inject(PlatformServiceInterface)
-    settingsService = TestBed.inject(Gn4SettingsService)
     httpTestingController = TestBed.inject(HttpTestingController)
   })
 
@@ -309,12 +306,13 @@ describe('Gn4Repository', () => {
     })
     describe('if record is not found', () => {
       beforeEach(async () => {
-        ;(gn4SearchApi as any).search = () =>
+        spySearch.mockReturnValueOnce(
           of({
             hits: {
               hits: [],
             },
-          })
+          } as EsSearchResponse)
+        )
         record = await lastValueFrom(repository.getRecord('1234-5678'))
       })
       it('returns null', () => {
@@ -354,12 +352,13 @@ describe('Gn4Repository', () => {
     })
     describe('if records are not found', () => {
       beforeEach(async () => {
-        ;(gn4SearchApi as any).search = () =>
+        spySearch.mockReturnValueOnce(
           of({
             hits: {
               hits: [],
             },
-          })
+          } as EsSearchResponse)
+        )
         records = await lastValueFrom(
           repository.getMultipleRecords(['1234-5678', '1234-5679'])
         )
@@ -661,7 +660,7 @@ describe('Gn4Repository', () => {
   })
   describe('aggregate', () => {
     let results: Aggregations
-    const aggParams = {
+    const aggParams: AggregationsParams = {
       myTerm: {
         type: 'terms',
         sort: ['asc', 'key'],
@@ -940,6 +939,32 @@ describe('Gn4Repository', () => {
 
         expect((gn4RecordsApi.insert as jest.Mock).mock.calls[1][7]).toBe('55')
       })
+
+      it('uses group 55 for admins when publishing existing records without groupOwner', async () => {
+        ;(meApiService.getMe as jest.Mock).mockReturnValueOnce(
+          of({
+            admin: true,
+            profile: 'Administrator',
+            groupsWithEditor: [],
+            groupsWithRegisteredUser: [],
+          })
+        )
+        ;(gn4RecordsApi.insert as jest.Mock).mockReturnValueOnce(
+          of({
+            metadataInfos: {
+              1234: [{ uuid: '1234-5678-9012' }],
+            },
+          })
+        )
+
+        await lastValueFrom(
+          repository.saveRecord({
+            ...simpleDatasetRecordFixture(),
+          })
+        )
+
+        expect((gn4RecordsApi.insert as jest.Mock).mock.calls[1][7]).toBe('55')
+      })
     })
   })
   describe('duplicateExternalRecord', () => {
@@ -949,22 +974,32 @@ describe('Gn4Repository', () => {
 
     beforeEach(() => {
       jest.spyOn(repository, 'saveRecord').mockReturnValue(of('mock-uuid'))
-      jest
-        .spyOn(repository as any, 'getExternalRecordAsXml')
-        .mockReturnValue(of(mockXml))
     })
 
     it('fetches the external record as XML', async () => {
-      await lastValueFrom(repository.duplicateExternalRecord(recordDownloadUrl))
-      expect((repository as any).getExternalRecordAsXml).toHaveBeenCalledWith(
-        recordDownloadUrl
+      const responsePromise = lastValueFrom(
+        repository.duplicateExternalRecord(recordDownloadUrl)
       )
+
+      const req = httpTestingController.expectOne(recordDownloadUrl)
+      expect(req.request.headers.get('Accept')).toEqual(
+        'text/xml,application/xml'
+      )
+      expect(req.request.method).toEqual('GET')
+      req.flush(mockXml)
+
+      await responsePromise
     })
 
     it('edits title and calls saveRecord with record and recordAsXml', async () => {
-      const result = await lastValueFrom(
+      const responsePromise = lastValueFrom(
         repository.duplicateExternalRecord(recordDownloadUrl)
       )
+      const req = httpTestingController.expectOne(recordDownloadUrl)
+      req.flush(mockXml)
+
+      const result = await responsePromise
+
       expect(repository.saveRecord).toHaveBeenCalledWith(
         {
           ...mockRecord,
@@ -985,29 +1020,21 @@ describe('Gn4Repository', () => {
       expect(result).toBe('mock-uuid')
     })
 
-    it('handles errors when fetching the external record', fakeAsync(() => {
-      jest
-        .spyOn(repository as any, 'getExternalRecordAsXml')
-        .mockReturnValue(
-          throwError(
-            () =>
-              new HttpErrorResponse({ status: 404, statusText: 'Not Found' })
-          )
-        )
-
-      let errorResponse: any
-      repository.duplicateExternalRecord(recordDownloadUrl).subscribe({
-        error: (error) => {
-          errorResponse = error
-        },
+    it('handles errors when fetching the external record', async () => {
+      const responsePromise = lastValueFrom(
+        repository.duplicateExternalRecord(recordDownloadUrl)
+      )
+      const req = httpTestingController.expectOne(recordDownloadUrl)
+      req.flush('Error fetching record', {
+        status: 404,
+        statusText: 'Not Found',
       })
 
-      tick()
-
-      expect(errorResponse).toBeDefined()
-      expect(errorResponse.status).toBe(404)
-      expect(errorResponse.statusText).toBe('Not Found')
-    }))
+      await expect(responsePromise).rejects.toMatchObject({
+        status: 404,
+        statusText: 'Not Found',
+      } as Partial<HttpErrorResponse>)
+    })
   })
   describe('record draft', () => {
     beforeEach(async () => {
@@ -1168,10 +1195,10 @@ describe('Gn4Repository', () => {
     }))
 
     it('should handle an error response when fetching the external record', fakeAsync(() => {
-      let errorResponse: any
+      let errorResponse: HttpErrorResponse | undefined
 
       repository.duplicateExternalRecord(recordDownloadUrl).subscribe({
-        error: (error) => {
+        error: (error: HttpErrorResponse) => {
           errorResponse = error
         },
       })

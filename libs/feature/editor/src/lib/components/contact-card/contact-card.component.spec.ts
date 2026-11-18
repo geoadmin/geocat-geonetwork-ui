@@ -10,6 +10,7 @@ import {
   ButtonComponent,
 } from '@geonetwork-ui/ui/inputs'
 import { ChangeDetectionStrategy } from '@angular/core'
+import { By } from '@angular/platform-browser'
 
 describe('ContactCardComponent', () => {
   let component: ContactCardComponent
@@ -45,5 +46,35 @@ describe('ContactCardComponent', () => {
 
   it('should create the component', () => {
     expect(component).toBeTruthy()
+  })
+
+  it('shows organization name when individual name is missing', () => {
+    component.contact = {
+      firstName: '',
+      lastName: '',
+      organization: { name: 'swisstopo' } as Organization,
+      email: '',
+      role: 'point_of_contact',
+    }
+    fixture.detectChanges()
+    const nameEl = fixture.debugElement.query(
+      By.css('[data-test="contactCardName"]')
+    )
+    expect(nameEl.nativeElement.textContent.trim()).toBe('swisstopo')
+  })
+
+  it('falls back to email when organization is placeholder', () => {
+    component.contact = {
+      firstName: '',
+      lastName: '',
+      organization: { name: 'Missing Organization' } as Organization,
+      email: 'john.doe@example.com',
+      role: 'point_of_contact',
+    }
+    fixture.detectChanges()
+    const nameEl = fixture.debugElement.query(
+      By.css('[data-test="contactCardName"]')
+    )
+    expect(nameEl.nativeElement.textContent.trim()).toBe('john.doe@example.com')
   })
 })

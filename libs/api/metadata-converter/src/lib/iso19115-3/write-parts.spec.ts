@@ -455,6 +455,34 @@ describe('write parts', () => {
     </gmd:distributionInfo>
 </root>`)
     })
+
+    it('writes protocol and layer name for service links', () => {
+      const serviceLink = {
+        type: 'service',
+        url: new URL(
+          'https://map.geo.sz.ch/mapserv_proxy?SERVICE=WMS&REQUEST=GetCapabilities'
+        ),
+        accessServiceProtocol: 'wms',
+        identifierInService: 'ch.sz.a082a.schutzbauten',
+        name: 'ch.sz.a082a.schutzbauten',
+        description: 'Schutzraumkataster Kanton Schwyz',
+      } as any
+
+      datasetRecord = {
+        ...datasetRecord,
+        onlineResources: [serviceLink],
+      }
+      writeOnlineResources(datasetRecord, rootEl)
+      const xml = rootAsString()
+      expect(xml).toContain('<cit:protocol>')
+      expect(xml).toContain(
+        '<gco:CharacterString>OGC:WMS-http-get-capabilities</gco:CharacterString>'
+      )
+      expect(xml).toContain('<cit:name>')
+      expect(xml).toContain(
+        '<gco:CharacterString>ch.sz.a082a.schutzbauten</gco:CharacterString>'
+      )
+    })
   })
 
   describe('writeContacts', () => {

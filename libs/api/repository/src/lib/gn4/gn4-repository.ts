@@ -492,18 +492,21 @@ export class Gn4Repository implements RecordsRepositoryInterface {
     uniqueIdentifier: string | null | undefined,
     groupOwner?: string
   ): Observable<string | undefined> {
-    if (groupOwner || uniqueIdentifier) return of(groupOwner)
+    if (groupOwner) return of(groupOwner)
 
     return this.meApi.getMe().pipe(
       switchMap((me) => {
+        if (me?.admin || me?.profile?.toLowerCase() === 'administrator') {
+          return of('55')
+        }
+
+        if (uniqueIdentifier) return of(undefined)
+
         const editableGroupId = me?.groupsWithEditor?.[0]
         const registeredGroupId = me?.groupsWithRegisteredUser?.[0]
         const groupId = editableGroupId ?? registeredGroupId
         if (groupId !== undefined && groupId !== null) {
           return of(groupId.toString())
-        }
-        if (me?.admin || me?.profile?.toLowerCase() === 'administrator') {
-          return of('55')
         }
 
         return this.usersApi.retrieveAllUserGroups().pipe(

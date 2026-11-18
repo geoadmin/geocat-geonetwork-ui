@@ -364,6 +364,72 @@ describe('read parts', () => {
           translations: {},
         })
       })
+
+      it('falls back to a default organization when no contact is available', () => {
+        const noContactRoot = getRootElement(
+          parseXmlString(`
+<mdb:MD_Metadata>
+  <mdb:identificationInfo>
+    <mri:MD_DataIdentification />
+  </mdb:identificationInfo>
+</mdb:MD_Metadata>`)
+        )
+        expect(readOwnerOrganization(noContactRoot)).toEqual({
+          name: 'Missing Organization',
+          translations: {},
+        })
+      })
+
+      it('does not inject placeholder email for organization-only contacts', () => {
+        const orgOnlyContactRoot = getRootElement(
+          parseXmlString(`
+<mdb:MD_Metadata>
+  <mdb:contact>
+    <cit:CI_Responsibility>
+      <cit:role>
+        <cit:CI_RoleCode codeListValue="pointOfContact" />
+      </cit:role>
+      <cit:party>
+        <cit:CI_Organisation>
+          <cit:name>
+            <gco:CharacterString>swisstopo</gco:CharacterString>
+          </cit:name>
+        </cit:CI_Organisation>
+      </cit:party>
+    </cit:CI_Responsibility>
+  </mdb:contact>
+</mdb:MD_Metadata>`)
+        )
+        expect(readContacts(orgOnlyContactRoot)[0].email).toBe('')
+      })
+
+      it('reads organization name when CI_Organisation stores PT_FreeText directly', () => {
+        const orgNameDirectRoot = getRootElement(
+          parseXmlString(`
+<mdb:MD_Metadata>
+  <mdb:contact>
+    <cit:CI_Responsibility>
+      <cit:role>
+        <cit:CI_RoleCode codeListValue="pointOfContact" />
+      </cit:role>
+      <cit:party>
+        <cit:CI_Organisation xsi:type="lan:PT_FreeText_PropertyType">
+          <gco:CharacterString>swisstopo swisstopo</gco:CharacterString>
+          <lan:PT_FreeText>
+            <lan:textGroup>
+              <lan:LocalisedCharacterString locale="#FR">swisstopo swisstopo</lan:LocalisedCharacterString>
+            </lan:textGroup>
+          </lan:PT_FreeText>
+        </cit:CI_Organisation>
+      </cit:party>
+    </cit:CI_Responsibility>
+  </mdb:contact>
+</mdb:MD_Metadata>`)
+        )
+        expect(readContacts(orgNameDirectRoot)[0].organization?.name).toBe(
+          'swisstopo swisstopo'
+        )
+      })
     })
   })
   describe('readKeywords', () => {

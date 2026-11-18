@@ -12,6 +12,7 @@ import {
 import {
   ChainableFunction,
   combine,
+  fallback,
   filterArray,
   flattenArray,
   getAtIndex,
@@ -25,7 +26,6 @@ import {
   extractDateTime,
   extractLocalizedCharacterString,
   extractReuseOnlineResources,
-  extractRole,
   extractServiceOnlineResources,
   extractUrl,
   findIdentification,
@@ -50,6 +50,7 @@ import { getResourceType, getReuseType } from '../common/resource-types'
 import { Geometry } from 'geojson'
 import { readGeometry } from '../iso19139/utils/geometry'
 import { extractDecimal } from '../iso19139/read-parts'
+import { getRoleFromRoleCode } from '../iso19139/utils/role.mapper'
 
 export function readKind(rootEl: XmlElement): RecordKind {
   return pipe(
@@ -87,15 +88,15 @@ export function extractOrganization(): ChainableFunction<
   return pipe(
     combine(
       pipe(
-        findChildElement('cit:name', false),
+        fallback(findChildElement('cit:name', false), (el) => el),
         extractLocalizedCharacterString<OrganizationTranslations>('name')
       ),
       getUrl
     ),
     map(([[name, translations], website]) => ({
-      name,
+      name: name || 'Missing Organization',
       ...(website && { website }),
-      translations,
+      translations: translations || {},
     }))
   )
 }
@@ -166,7 +167,7 @@ export function extractIndividual(
     combine(getPosition, getNameParts, getEmail, getAddress, getPhone),
     map(([position, [firstName, lastName], email, address, phone]) => ({
       ...defaultIndividual,
-      email: email || defaultIndividual.email || 'missing@missing.com',
+      email: email || defaultIndividual.email || '',
       role,
       organization: organization || defaultOrg,
       ...(position && { position }),
@@ -210,7 +211,12 @@ export function extractIndividuals(): ChainableFunction<
   XmlElement,
   Array<Individual>
 > {
-  const getRole = pipe(findChildElement('cit:role'), extractRole())
+  const getRole = pipe(
+    findChildElement('cit:role'),
+    findChildElement('cit:CI_RoleCode'),
+    readAttribute('codeListValue'),
+    map(getRoleFromRoleCode)
+  )
   const getIndividuals = pipe(
     combine(getRole, findNestedElements('cit:party', 'cit:CI_Individual')),
     ([role, els]) => els.map(extractIndividual(role))
@@ -241,7 +247,13 @@ export function readOwnerOrganization(rootEl: XmlElement): Organization {
   const pointOfContact = contacts.filter(
     (c) => c.role === 'point_of_contact'
   )[0]
-  return (pointOfContact || contacts[0] || contactsForResource[0]).organization
+  const ownerContact = pointOfContact || contacts[0] || contactsForResource[0]
+  return (
+    ownerContact?.organization || {
+      name: 'Missing Organization',
+      translations: {},
+    }
+  )
 }
 
 export function readContacts(rootEl: XmlElement): Individual[] {

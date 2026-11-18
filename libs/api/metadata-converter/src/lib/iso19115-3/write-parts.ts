@@ -1,5 +1,6 @@
 import {
   CatalogRecord,
+  DatasetOnlineResource,
   DatasetRecord,
   FieldTranslation,
   Individual,
@@ -16,6 +17,7 @@ import {
   createNestedChild,
   findChildElement,
   findChildOrCreate,
+  findNestedElement,
   findNestedChildOrCreate,
   findParent,
   readAttribute,
@@ -30,6 +32,7 @@ import {
   ChainableFunction,
   noop,
   pipe,
+  tap,
 } from '../function-utils'
 import {
   findLicenseCodeByText,
@@ -39,9 +42,9 @@ import {
   appendKeywords,
   createConstraint,
   createCHELicense,
-  createDistributionInfo,
   createLicense,
   findOrCreateDistribution,
+  getServiceDistributionProtocol,
   getProgressCode,
   getRoleCode,
   removeEmptyResourceConstraints,
@@ -63,6 +66,11 @@ import { readKind } from './read-parts'
 import { namePartsToFull } from '../iso19139/utils/individual-name'
 import { toLang3 } from '@geonetwork-ui/util/i18n/language-codes'
 import { kindToCodeListValue } from '../common/resource-types'
+
+type ContactWithSubtemplate = Individual & {
+  subtemplateXlinkHref?: string
+  subtemplateXml?: string
+}
 
 /**
  * ISO19115-3 version of writeLocalizedCharacterString
@@ -629,11 +637,12 @@ export function writeContacts(record: CatalogRecord, rootEl: XmlElement) {
     removeChildrenByName('mdb:contact'),
     appendChildren(
       ...(record.contacts || []).map((contact) => {
+        const contactWithSubtemplate = contact as ContactWithSubtemplate
         // When xlink:href is present, GeoNetwork will resolve the subtemplate content
         // so we just add the wrapper with xlink:href and no child content
         // When no xlink:href but subtemplateXml exists, use the stored XML directly
-        const hasXlinkHref = !!(contact as any).subtemplateXlinkHref
-        const hasSubtemplateXml = !!(contact as any).subtemplateXml
+        const hasXlinkHref = !!contactWithSubtemplate.subtemplateXlinkHref
+        const hasSubtemplateXml = !!contactWithSubtemplate.subtemplateXml
 
         // Determine which content function to use
         let contentFn: ChainableFunction<XmlElement, XmlElement>
@@ -642,7 +651,9 @@ export function writeContacts(record: CatalogRecord, rootEl: XmlElement) {
           contentFn = noop
         } else if (hasSubtemplateXml) {
           // Without xlink:href but with subtemplateXml, use the stored XML
-          contentFn = appendSubtemplateContent((contact as any).subtemplateXml)
+          contentFn = appendSubtemplateContent(
+            contactWithSubtemplate.subtemplateXml
+          )
         } else {
           // No xlink:href and no subtemplateXml, generate from contact data
           contentFn = appendResponsibleParty(contact, record.defaultLanguage)
@@ -654,7 +665,7 @@ export function writeContacts(record: CatalogRecord, rootEl: XmlElement) {
           hasXlinkHref
             ? writeAttribute(
                 'xlink:href',
-                (contact as any).subtemplateXlinkHref
+                contactWithSubtemplate.subtemplateXlinkHref
               )
             : noop,
           contentFn
@@ -680,16 +691,19 @@ export function writeContactsForResource(
     removeChildrenByName('mri:pointOfContact'),
     appendChildren(
       ...withoutDistributors.map((contact) => {
+        const contactWithSubtemplate = contact as ContactWithSubtemplate
         // When xlink:href is present, GeoNetwork will resolve the subtemplate content
-        const hasXlinkHref = !!(contact as any).subtemplateXlinkHref
-        const hasSubtemplateXml = !!(contact as any).subtemplateXml
+        const hasXlinkHref = !!contactWithSubtemplate.subtemplateXlinkHref
+        const hasSubtemplateXml = !!contactWithSubtemplate.subtemplateXml
 
         // Determine which content function to use
         let contentFn: ChainableFunction<XmlElement, XmlElement>
         if (hasXlinkHref) {
           contentFn = noop
         } else if (hasSubtemplateXml) {
-          contentFn = appendSubtemplateContent((contact as any).subtemplateXml)
+          contentFn = appendSubtemplateContent(
+            contactWithSubtemplate.subtemplateXml
+          )
         } else {
           contentFn = appendResponsibleParty(contact, record.defaultLanguage)
         }
@@ -699,7 +713,7 @@ export function writeContactsForResource(
           hasXlinkHref
             ? writeAttribute(
                 'xlink:href',
-                (contact as any).subtemplateXlinkHref
+                contactWithSubtemplate.subtemplateXlinkHref
               )
             : noop,
           contentFn
@@ -715,16 +729,19 @@ export function writeContactsForResource(
     createChild('mrd:MD_Distributor'),
     appendChildren(
       ...distributors.map((contact) => {
+        const contactWithSubtemplate = contact as ContactWithSubtemplate
         // When xlink:href is present, GeoNetwork will resolve the subtemplate content
-        const hasXlinkHref = !!(contact as any).subtemplateXlinkHref
-        const hasSubtemplateXml = !!(contact as any).subtemplateXml
+        const hasXlinkHref = !!contactWithSubtemplate.subtemplateXlinkHref
+        const hasSubtemplateXml = !!contactWithSubtemplate.subtemplateXml
 
         // Determine which content function to use
         let contentFn: ChainableFunction<XmlElement, XmlElement>
         if (hasXlinkHref) {
           contentFn = noop
         } else if (hasSubtemplateXml) {
-          contentFn = appendSubtemplateContent((contact as any).subtemplateXml)
+          contentFn = appendSubtemplateContent(
+            contactWithSubtemplate.subtemplateXml
+          )
         } else {
           contentFn = appendResponsibleParty(contact, record.defaultLanguage)
         }
@@ -734,7 +751,7 @@ export function writeContactsForResource(
           hasXlinkHref
             ? writeAttribute(
                 'xlink:href',
-                (contact as any).subtemplateXlinkHref
+                contactWithSubtemplate.subtemplateXlinkHref
               )
             : noop,
           contentFn
@@ -1455,24 +1472,79 @@ export function writeOnlineResources(
   record: CatalogRecord,
   rootEl: XmlElement
 ) {
-  // Remove all existing distribution info
+  const existingDistributionInfos = allChildrenElement(rootEl).filter(
+    (el) => el.name === 'mdb:distributionInfo' || el.name === 'gmd:distributionInfo'
+  )
+  const distributorToPreserve = existingDistributionInfos
+    .map((distributionInfo) =>
+      findNestedElement(
+        'mrd:MD_Distribution',
+        'mrd:distributor'
+      )(distributionInfo)
+    )
+    .find((distributor) => !!distributor)
+
+  removeChildrenByName('mdb:distributionInfo')(rootEl)
   removeChildrenByName('gmd:distributionInfo')(rootEl)
 
   if (!record.onlineResources?.length) {
     return
   }
 
+  const writeLinkage19115 = (url: URL): ChainableFunction<XmlElement, XmlElement> =>
+    tap(
+      pipe(
+        findNestedChildOrCreate('cit:linkage', 'gco:CharacterString'),
+        setTextContent(url.toString())
+      )
+    )
+
+  const getOnlineResourceName = (onlineResource: DatasetOnlineResource): string => {
+    if (onlineResource.type === 'service') {
+      return onlineResource.identifierInService || onlineResource.name
+    }
+    return onlineResource.name
+  }
+
+  const getOnlineResourceProtocol = (onlineResource: DatasetOnlineResource): string => {
+    if (onlineResource.type === 'service') {
+      const protocol = onlineResource.accessServiceProtocol?.toLowerCase()
+      if (protocol === 'wms') return 'OGC:WMS-http-get-capabilities'
+      if (protocol === 'wfs') return 'OGC:WFS-http-get-capabilities'
+      if (protocol === 'wmts') return 'OGC:WMTS-http-get-capabilities'
+      return getServiceDistributionProtocol(onlineResource)
+    }
+    if (onlineResource.type === 'download') return 'WWW:DOWNLOAD'
+    return 'WWW:LINK'
+  }
+
+  const getFunctionCode = (onlineResource: DatasetOnlineResource): string =>
+    onlineResource.type === 'download' || onlineResource.type === 'service'
+      ? 'download'
+      : 'information'
+
   // Create distribution info for each online resource
   appendChildren(
-    ...record.onlineResources.map((onlineResource) =>
+    ...record.onlineResources.map((onlineResource, index) =>
       pipe(
-        createDistributionInfo(),
-        findNestedChildOrCreate('gmd:transferOptions', 'gmd:MD_DigitalTransferOptions'),
+        createElement('mdb:distributionInfo'),
+        createChild('mrd:MD_Distribution'),
+        index === 0 && distributorToPreserve
+          ? (distributionEl: XmlElement) => {
+              distributorToPreserve.parent = distributionEl
+              distributionEl.children = [
+                ...(distributionEl.children || []),
+                distributorToPreserve,
+              ]
+              return distributionEl
+            }
+          : noop,
+        findNestedChildOrCreate('mrd:transferOptions', 'mrd:MD_DigitalTransferOptions'),
         appendChildren(
           pipe(
-            createElement('gmd:onLine'),
+            createElement('mrd:onLine'),
             createChild('cit:CI_OnlineResource'),
-            writeLinkage(onlineResource.url),
+            writeLinkage19115(onlineResource.url),
             // cit:description (optional)
             'description' in onlineResource && onlineResource.description
               ? appendChildren(
@@ -1486,6 +1558,24 @@ export function writeOnlineResources(
                   )
                 )
               : noop,
+            getOnlineResourceName(onlineResource)
+              ? appendChildren(
+                  pipe(
+                    createElement('cit:name'),
+                    writeLocalizedCharacterString19115(
+                      getOnlineResourceName(onlineResource),
+                      onlineResource.translations?.name,
+                      record.defaultLanguage
+                    )
+                  )
+                )
+              : noop,
+            appendChildren(
+              pipe(
+                createElement('cit:protocol'),
+                writeCharacterString(getOnlineResourceProtocol(onlineResource))
+              )
+            ),
             // cit:function (optional)
             appendChildren(
               pipe(
@@ -1497,12 +1587,10 @@ export function writeOnlineResources(
                 ),
                 writeAttribute(
                   'codeListValue',
-                  onlineResource.type === 'download' ? 'download' : 'information'
+                  getFunctionCode(onlineResource)
                 )
               )
             )
-            // NOTE: NO cit:protocol element in ISO19115-3!
-            // NOTE: NO gmd:name element in ISO19115-3 CI_OnlineResource!
           )
         )
       )
